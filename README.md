@@ -64,6 +64,9 @@ cargo watch -x run -i frontend/
 # Tips
 * Use the [mold](https://github.com/rui314/mold) linker for slightly faster compilation.
 
+## Playwright testing
+
+- `npx playwright test --workers=1`
 
 # Containerize your application
       
