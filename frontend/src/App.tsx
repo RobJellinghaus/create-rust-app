@@ -1,3 +1,5 @@
+import { useApolloClient } from '@apollo/client'
+import { GraphQLPage } from './containers/GraphQLPage'
 import { useAuth, useAuthCheck } from './hooks/useAuth'
 import { AccountPage } from './containers/AccountPage'
 import { LoginPage } from './containers/LoginPage'
@@ -19,6 +21,7 @@ const App = () => {
     
   const navigate = useNavigate()
   /* CRA: app hooks */
+  const apollo = useApolloClient()
   
   // @ts-ignore
   return (
@@ -29,11 +32,12 @@ const App = () => {
           <a className="NavButton" onClick={() => navigate('/todos')}>Todos</a>
         <a className="NavButton" onClick={() => navigate('/files')}>Files</a>
           {/* CRA: left-aligned nav buttons */}
+          <a className="NavButton" onClick={() => navigate('/gql')}>GraphQL</a>
           <a className="NavButton" onClick={() => navigate('/account')}>Account</a>
         </div>
         <div style={{ display: 'flex' }}>
           {/* CRA: right-aligned nav buttons */}
-          { auth.isAuthenticated && <a className="NavButton" onClick={() => auth.logout()}>Logout</a> }
+          { auth.isAuthenticated && <a className="NavButton" onClick={() => { auth.logout(); apollo.resetStore(); }}>Logout</a> }
           { !auth.isAuthenticated && <a className="NavButton" onClick={() => navigate('/login')}>Login/Register</a> }
         </div>
       </div>
@@ -42,6 +46,7 @@ const App = () => {
           <Route path="/" element={<Home />} />
           <Route path="/todos" element={<Todos />} />
           {/* CRA: routes */}
+            <Route path="/gql" element={<GraphQLPage />} />
             <Route path="/files" element={<Files />} />
           <Route path="/login" element={<LoginPage />} />
             <Route path="/oauth/success" element={<OauthLoginResultPage />} />
