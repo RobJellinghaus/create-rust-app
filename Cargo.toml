@@ -1,0 +1,98 @@
+[[bin]]
+name = "fullstack"
+path = ".cargo/bin/fullstack.rs"
+
+[[bin]]
+name = "tsync"
+path = ".cargo/bin/tsync.rs"
+
+[[bin]]
+name = "dsync"
+path = ".cargo/bin/dsync.rs"
+
+[[bin]]
+name = "backend"
+path = ".cargo/bin/backend.rs"
+
+[[bin]]
+name = "frontend"
+path = ".cargo/bin/frontend.rs"
+
+[[bin]]
+name = "queue"
+path = "backend/queue.rs"
+
+[[bin]]
+name = "async_queue"
+path = "backend/async_queue.rs"
+
+[[bin]]
+name = "procuretoy"
+path = "backend/main.rs"
+
+[dependencies]
+actix-files = "0.6.0"
+actix-http = "3.6"
+actix-multipart = "0.6.0"
+actix-web = "4.5"
+futures-util = "0.3.30"
+create-rust-app = {version="11.0.1", default-features = false, features=["plugin_auth", "plugin_auth-oidc", "plugin_container", "plugin_storage", "plugin_tasks", "plugin_graphql", "plugin_utoipa", "plugin_dev", "database_postgres", "backend_actix-web"]}
+serde_json = "1"
+simple_logger = "5.0"
+tsync = "3"
+
+[dependencies.chrono]
+features = ["serde"]
+version = "0.4.38"
+
+[dependencies.diesel]
+default-features = false
+features = ["postgres", "r2d2", "chrono"]
+version = "2.1"
+
+[dependencies.dsync]
+features = ["advanced-queries"]
+version = "0"
+
+[dependencies.serde]
+features = ["derive"]
+version = "1"
+
+[dependencies.tokio]
+features = ["full"]
+version = "1"
+
+[package]
+default-run = "procuretoy"
+name = "procuretoy"
+publish = false
+
+[package.authors]
+workspace = true
+
+[package.categories]
+workspace = true
+
+[package.description]
+workspace = true
+
+[package.edition]
+workspace = true
+
+[package.keywords]
+workspace = true
+
+[package.license]
+workspace = true
+
+[package.readme]
+workspace = true
+
+[package.repository]
+workspace = true
+
+[package.version]
+workspace = true
+
+[profile.dev]
+debug-assertions = true
