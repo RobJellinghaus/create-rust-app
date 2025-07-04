@@ -27,8 +27,8 @@ jobs:
     - name: Install Playwright Browsers
       run: npx playwright install --with-deps
 
-    - name: Build and start fullstack application
-      run: cargo fullstack
+    - name: Build and start fullstack application in background
+      run: cargo fullstack &
 
     - name: Run Playwright tests
       run: npx playwright test --workers=1
@@ -38,3 +38,6 @@ jobs:
         name: playwright-report
         path: procuretoy/playwright-report/
         retention-days: 30
+    
+    - name: Terminate fullstack & node servers
+      run: kill `pgrep fullstack` && kill `pgrep node`
