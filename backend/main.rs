@@ -30,6 +30,7 @@ async fn main() -> std::io::Result<()> {
         }));
 
         let mut api_scope = web::scope("/api");
+        api_scope = api_scope.service(create_rust_app::auth::endpoints(web::scope("/auth")));
         api_scope = api_scope.service(services::todo::endpoints(web::scope("/todos")));
 
         #[cfg(debug_assertions)]
