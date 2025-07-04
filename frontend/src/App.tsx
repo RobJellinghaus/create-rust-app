@@ -10,6 +10,7 @@ import React from 'react'
 import './App.css'
 import { Home } from './containers/Home'
 import { Todos } from './containers/Todo'
+import { Files } from './containers/Files'
 import { Route, useNavigate, Routes } from 'react-router-dom'
 
 const App = () => {
@@ -26,6 +27,7 @@ const App = () => {
         <div style={{ display: 'flex', flex: 1 }}>
           <a className="NavButton" onClick={() => navigate('/')}>Home</a>
           <a className="NavButton" onClick={() => navigate('/todos')}>Todos</a>
+        <a className="NavButton" onClick={() => navigate('/files')}>Files</a>
           {/* CRA: left-aligned nav buttons */}
           <a className="NavButton" onClick={() => navigate('/account')}>Account</a>
         </div>
@@ -40,6 +42,7 @@ const App = () => {
           <Route path="/" element={<Home />} />
           <Route path="/todos" element={<Todos />} />
           {/* CRA: routes */}
+            <Route path="/files" element={<Files />} />
           <Route path="/login" element={<LoginPage />} />
             <Route path="/oauth/success" element={<OauthLoginResultPage />} />
             <Route path="/oauth/error" element={<OauthLoginResultPage />} />
