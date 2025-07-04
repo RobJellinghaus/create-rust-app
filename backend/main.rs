@@ -4,18 +4,43 @@ use actix_files::{Files};
 use actix_web::{App, HttpServer, web};
 use actix_web::middleware::{Compress, Logger, TrailingSlash, NormalizePath};
 use actix_web::web::Data;
+use fang::{AsyncQueueable, AsyncRunnable, NoTls, Queueable};
 use create_rust_app::AppConfig;
 
 mod schema;
 mod services;
 mod models;
 mod mail;
+mod tasks;
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
     #[cfg(debug_assertions)] create_rust_app::setup_development().await;
     let app_data = create_rust_app::setup();
     simple_logger::init_with_env().unwrap();
+
+    // Tasks plugin example: sync queue example
+    // See fang docs for more info: https://docs.rs/fang/0.10.4/fang/
+    {
+        // The blocking queue re-uses the app's db connection pool
+        let queue = create_rust_app::tasks::queue();
+
+        // An example of how to schedule a blocking task (see `fang` docs for more info):
+        use fang::Queueable;
+        queue.schedule_task(&tasks::daily_todo::DailyTodo { text: "Call mom (DailyTodo task)".to_string() }).unwrap();
+    }
+
+    // Tasks plugin example: async queue example
+    // See fang docs for more info: https://docs.rs/fang/0.10.4/fang/
+    {
+        // The async queue uses a separate db connection pool. We need to connnect it at least once before we can use it throughout out app.
+        let mut async_queue = create_rust_app::tasks::async_queue();
+        async_queue.lock().unwrap().connect(NoTls).await.expect("Failed to connect to async queue database");
+        // this means you need to have the above line somewhere in `main.rs`, before any async jobs are scheduled
+
+        // and here's how you can schedule an async task:
+        async_queue.lock().unwrap().schedule_task(&tasks::daily_todo_async::DailyTodoAsync { text: "Call mom (DailyTodoAsync task)".to_string() } as &dyn AsyncRunnable).await.unwrap();
+    }
 
     HttpServer::new(move || {
         let mut app = App::new()
