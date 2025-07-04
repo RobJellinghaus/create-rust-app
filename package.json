@@ -1,0 +1,22 @@
+{
+  "name": "procuretoy",
+  "version": "1.0.0",
+  "description": "This project was bootstrapped with [Create Rust App](https://github.com/wulf/create-rust-app).",
+  "main": "index.js",
+  "scripts": {},
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/RobJellinghaus/create-rust-app.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/RobJellinghaus/create-rust-app/issues"
+  },
+  "homepage": "https://github.com/RobJellinghaus/create-rust-app#readme",
+  "devDependencies": {
+    "@playwright/test": "^1.53.2",
+    "@types/node": "^24.0.10"
+  }
+}

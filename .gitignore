@@ -7,3 +7,10 @@ build-log*.txt
 .DS_Store
 /.idea/
 target
+
+# Playwright
+node_modules/
+/test-results/
+/playwright-report/
+/blob-report/
+/playwright/.cache/
