@@ -37,6 +37,7 @@ const App = () => {
         </div>
         <div style={{ display: 'flex' }}>
           {/* CRA: right-aligned nav buttons */}
+            <a className="NavButton" onClick={() => window.location.href = "/swagger-ui/" }>API</a>
           { auth.isAuthenticated && <a className="NavButton" onClick={() => { auth.logout(); apollo.resetStore(); }}>Logout</a> }
           { !auth.isAuthenticated && <a className="NavButton" onClick={() => navigate('/login')}>Login/Register</a> }
         </div>

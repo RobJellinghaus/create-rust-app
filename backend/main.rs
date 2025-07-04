@@ -94,6 +94,16 @@ async fn main() -> std::io::Result<()> {
         #[cfg(debug_assertions)]
         {
             /* Development-only routes */
+            
+            /* Mount Swagger ui */
+            use utoipa::OpenApi;
+            use utoipa_swagger_ui::{SwaggerUi, Url};
+            app = app.service(SwaggerUi::new("/swagger-ui/{_:.*}").urls(vec![
+                (
+                     Url::new("auth", "/api-doc/openapi_auth.json"),
+                     create_rust_app::auth::ApiDoc::openapi(),
+                ),
+            ]));
             // Mount the GraphQL playground on /graphql
             app = app.route("/graphql", web::get().to(graphql::index_playground));
             // Mount development-only API routes
