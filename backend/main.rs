@@ -28,6 +28,21 @@ async fn main() -> std::io::Result<()> {
         app = app.app_data(Data::new(AppConfig {
             app_url: std::env::var("APP_URL").unwrap(),
         }));
+        app = app.app_data(Data::new(create_rust_app::auth::AuthConfig {
+            oidc_providers: vec![create_rust_app::auth::oidc::OIDCProvider::GOOGLE(
+                std::env::var("GOOGLE_OAUTH2_CLIENT_ID").unwrap(),
+                std::env::var("GOOGLE_OAUTH2_CLIENT_SECRET").unwrap(),
+                format!(
+                    "{app_url}/oauth/success",
+                    app_url = std::env::var("APP_URL").unwrap()
+                ),
+                format!(
+                    "{app_url}/oauth/error",
+                    app_url = std::env::var("APP_URL").unwrap()
+                ),
+            )],
+        }));
+
 
         let mut api_scope = web::scope("/api");
         api_scope = api_scope.service(create_rust_app::auth::endpoints(web::scope("/auth")));

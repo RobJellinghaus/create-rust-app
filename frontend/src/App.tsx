@@ -1,6 +1,7 @@
 import { useAuth, useAuthCheck } from './hooks/useAuth'
 import { AccountPage } from './containers/AccountPage'
 import { LoginPage } from './containers/LoginPage'
+import { OauthLoginResultPage } from './containers/OauthLoginResultPage'
 import { ActivationPage } from './containers/ActivationPage'
 import { RegistrationPage } from './containers/RegistrationPage'
 import { RecoveryPage } from './containers/RecoveryPage'
@@ -40,6 +41,8 @@ const App = () => {
           <Route path="/todos" element={<Todos />} />
           {/* CRA: routes */}
           <Route path="/login" element={<LoginPage />} />
+            <Route path="/oauth/success" element={<OauthLoginResultPage />} />
+            <Route path="/oauth/error" element={<OauthLoginResultPage />} />
           <Route path="/recovery" element={<RecoveryPage />} />
           <Route path="/reset" element={<ResetPage />} />
           <Route path="/activate" element={<ActivationPage />} />

@@ -43,6 +43,14 @@ export const LoginPage = () => {
       </div>
       <a
         style={{ marginTop: '30px' }}
+        onClick={() => auth.loginOIDC('google')}
+        href="#"
+      >
+        Login with Google
+      </a>
+
+      <a
+        style={{ marginTop: '30px' }}
         href="#"
         onClick={() => navigate('/register')}
       >

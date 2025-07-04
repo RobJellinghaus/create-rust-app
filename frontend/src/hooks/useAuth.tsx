@@ -111,7 +111,57 @@ export const useAuth = () => {
     }
   }
 
-  const logout = async (): Promise<boolean> => {
+  const loginOIDC = async (
+    provider: string,
+    options?: { redirectUrl?: 'current-url' | string }
+) => {
+    if (options?.redirectUrl) {
+        localStorage.setItem(
+        'create_rust_app_oauth_redirect',
+        options?.redirectUrl === 'current-url'
+            ? window.location.href
+            : options.redirectUrl
+        )
+    } else {
+        localStorage.removeItem('create_rust_app_oauth_redirect')
+    }
+
+    window.location.href = `/api/auth/oidc/${provider}`
+}
+            
+const completeOIDCLogin = (): boolean => {
+    const params = new URLSearchParams(window.location.search);
+    let access_token = params.get('access_token');
+    if (!access_token) {
+        context.setAccessToken(undefined)
+        context.setSession(undefined)
+
+        return false
+    } else {
+        const parsedToken = parseJwt(access_token) as AccessTokenClaims
+        const permissions = new Permissions(parsedToken.roles, parsedToken.permissions)
+        context.setAccessToken(access_token)
+        context.setSession({
+            userId: parsedToken.sub,
+            expiresOnUTC: parsedToken.exp,
+            roles: permissions.roles,
+            permissions: permissions.permissions,
+            hasPermission: permissions.hasPermission,
+            hasRole: permissions.hasRole,
+        })
+
+
+        if (localStorage.getItem('create_rust_app_oauth_redirect')) {
+            window.location.href = localStorage.getItem(
+            'create_rust_app_oauth_redirect'
+            ) as string
+        }
+
+        return true
+    }
+}
+
+const logout = async (): Promise<boolean> => {
     const response = await fetch('/api/auth/logout', {
       method: 'POST',
     })
@@ -132,6 +182,8 @@ export const useAuth = () => {
     isAuthenticated: !!context.accessToken,
     login,
     logout,
+loginOIDC,
+completeOIDCLogin
   }
 }
 
