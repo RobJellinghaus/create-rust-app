@@ -12,6 +12,7 @@ import React from 'react'
 import './App.css'
 import { Home } from './containers/Home'
 import { Todos } from './containers/Todo'
+import { TodosGraphQL } from './containers/TodoGraphQL'
 import { Files } from './containers/Files'
 import { Route, useNavigate, Routes } from 'react-router-dom'
 
@@ -30,6 +31,7 @@ const App = () => {
         <div style={{ display: 'flex', flex: 1 }}>
           <a className="NavButton" onClick={() => navigate('/')}>Home</a>
           <a className="NavButton" onClick={() => navigate('/todos')}>Todos</a>
+          <a className="NavButton" onClick={() => navigate('/todos-graphql')}>Todos (GraphQL)</a>
         <a className="NavButton" onClick={() => navigate('/files')}>Files</a>
           {/* CRA: left-aligned nav buttons */}
           <a className="NavButton" onClick={() => navigate('/gql')}>GraphQL</a>
@@ -46,6 +48,7 @@ const App = () => {
         <Routes>
           <Route path="/" element={<Home />} />
           <Route path="/todos" element={<Todos />} />
+          <Route path="/todos-graphql" element={<TodosGraphQL />} />
           {/* CRA: routes */}
             <Route path="/gql" element={<GraphQLPage />} />
             <Route path="/files" element={<Files />} />

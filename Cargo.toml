@@ -35,7 +35,7 @@ actix-files = "0.6.0"
 actix-http = "3.6"
 actix-multipart = "0.6.0"
 actix-web = "4.5"
-async-graphql = "3.0.38"
+async-graphql = { version = "3.0.38", features = ["chrono"] }
 async-graphql-actix-web = "3.0.38"
 fang = "0.10.4"
 futures-util = "0.3.30"

@@ -8,7 +8,7 @@ pub type ConnectionType = create_rust_app::Connection;
 
 /// Struct representing a row in table `todo`
 #[tsync::tsync]
-#[derive(Debug, Clone, serde::Serialize, serde::Deserialize, diesel::Queryable, diesel::Selectable, diesel::QueryableByName, diesel::Identifiable)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize, diesel::Queryable, diesel::Selectable, diesel::QueryableByName, diesel::Identifiable, async_graphql::SimpleObject)]
 #[diesel(table_name=todo, primary_key(id))]
 pub struct Todo {
     /// Field representing column `id`
@@ -45,8 +45,8 @@ pub struct UpdateTodo {
 
 /// Result of a `.paginate` function
 #[tsync::tsync]
-#[derive(Debug, serde::Serialize)]
-pub struct PaginationResult<T> {
+#[derive(Debug, serde::Serialize, async_graphql::SimpleObject)]
+pub struct PaginationResult<T: Send + Sync + async_graphql::OutputType> {
     /// Resulting items that are from the current page
     pub items: Vec<T>,
     /// The count of total items there are
