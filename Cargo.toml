@@ -21,6 +21,6 @@ resolver = "2"
 members = [
   "crates/create-rust-app",
   "crates/create-rust-app_cli",
-  "crates/qsync",
+  "crates/qsync", "procuretoy",
 ]
 exclude = ["docs"]
