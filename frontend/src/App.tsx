@@ -30,7 +30,7 @@ const App = () => {
       <div className="App-nav-header">
         <div style={{ display: 'flex', flex: 1 }}>
           <a className="NavButton" onClick={() => navigate('/')}>Home</a>
-          <a className="NavButton" onClick={() => navigate('/todos')}>Todos</a>
+          <a className="NavButton" onClick={() => navigate('/todos')}>Todos (REST)</a>
           <a className="NavButton" onClick={() => navigate('/todos-graphql')}>Todos (GraphQL)</a>
         <a className="NavButton" onClick={() => navigate('/files')}>Files</a>
           {/* CRA: left-aligned nav buttons */}
