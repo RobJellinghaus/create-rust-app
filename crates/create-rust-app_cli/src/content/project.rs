@@ -428,10 +428,20 @@ pub fn create(project_name: &str, creation_options: CreationOptions) -> Result<(
         r#"chrono = { version = "0.4.38", features = ["serde"] }"#,
     )?;
     add_dependency(&project_dir, "tsync", r#"tsync = "3""#)?;
+    // Build dsync features based on enabled CRA features
+    let mut dsync_features = vec!["advanced-queries"];
+    if cra_enabled_features.contains(&"plugin_graphql".to_string()) {
+        dsync_features.push("graphql");
+    }
+    let dsync_features_str = dsync_features.iter()
+        .map(|f| format!("\"{f}\""))
+        .collect::<Vec<String>>()
+        .join(", ");
+    
     add_dependency(
         &project_dir,
         "dsync",
-        r#"dsync = { version = "0", features = ["advanced-queries"] }"#,
+        &format!(r#"dsync = {{ path = "../dsync", features = [{}] }}"#, dsync_features_str),
     )?;
     add_dependency(
         &project_dir,

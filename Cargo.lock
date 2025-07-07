@@ -2029,8 +2029,6 @@ dependencies = [
 [[package]]
 name = "dsync"
 version = "0.1.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e57a01f3e6b8623d55601b886729e0ce0eb614ca0d77a8e38e4db29c0ca77dab"
 dependencies = [
  "clap 4.5.40",
  "clap_complete",
