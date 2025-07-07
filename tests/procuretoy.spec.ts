@@ -4,8 +4,8 @@ test('todos page shows empty state', async ({ page }) => {
   // 1. Connect to http://localhost:3000
   await page.goto('http://localhost:3000');
 
-  // 2. Click the top nav bar button with the label 'Todos'
-  await page.click('text=Todos');
+  // 2. Click the top nav bar button with the label 'Todos (GraphQL)'
+  await page.click('text=Todos (GraphQL)');
 
   // 3. Check that the page says 'No todos, create one!'
   await expect(page.locator('text=No todos, create one!')).toBeVisible();
@@ -15,8 +15,8 @@ test('todos page allows adding and deleting new todo', async ({ page }) => {
   // 1. Go to http://localhost:3000
   await page.goto('http://localhost:3000');
 
-  // 2. Click the nav button named 'Todos'
-  await page.click('text=Todos');
+  // 2. Click the nav button named 'Todos (GraphQL)'
+  await page.click('text=Todos (GraphQL)');
 
   // 3. Click in the text entry box which says 'New todo...'
   await page.click('input[placeholder="New todo..."]');
