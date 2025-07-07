@@ -30,6 +30,11 @@ Whenever requested to `run all tests`, please execute:
 
 - `npx playwright test --workers=1`
 
+Whenever you are about to run `cargo fullstack &`, please make sure all log output is going to a file
+by instead running:
+
+- `cargo fullstack > fullstack.log 2>&1 &`
+
 If there are any failures, please explain them.
 
 ## How to write Rust code
@@ -75,3 +80,40 @@ When testing applications that start servers:
 5. **Proper test validation:**
     - Successful startup should show "Server running on..." or similar messages
     - Failed startup will show error messages and process termination
+
+## Testing Auto-Generated Code Systems
+
+When working with applications that use code generation tools (like `dsync`, `tsync`, etc.):
+
+1. **Watch for auto-generation during builds:**
+    - Look for messages like "Running dsync (generating model code...)"
+    - Code generation tools may overwrite manual edits during compilation
+    - System reminders about file modifications often indicate auto-generation conflicts
+
+2. **Identify generated vs. manual code:**
+    - Files with `/* @generated and managed by dsync */` headers are auto-generated
+    - Manual edits to generated files will be lost during builds
+    - Check for generation tools in `Cargo.toml` or build scripts
+
+3. **Testing strategy for generated code:**
+    - Test compilation first before assuming runtime success
+    - If compilation fails after successful edits, suspect auto-generation conflicts
+    - Look for wrapper types or configuration options instead of direct edits
+
+4. **Port conflict resolution:**
+    - Always check ALL required ports (frontend, backend, dev server, etc.)
+    - Kill processes by name: `pkill -f "process-name"`
+    - Force kill specific PIDs: `kill -9 <PID>`
+    - Common ports for full-stack apps: 3000 (backend), 21012 (frontend dev), 60013 (dev proxy)
+
+5. **Build process validation:**
+    - Distinguish between "build started" vs "build succeeded"
+    - Watch for compilation errors buried in verbose output
+    - Frontend build success doesn't guarantee backend compilation success
+    - Multiple compilation stages may each have different errors
+
+6. **Error pattern recognition:**
+    - `trait bound ... is not satisfied` often indicates missing derives or feature flags
+    - `Port ... is taken` requires process cleanup before retry
+    - `could not compile ... due to N previous errors` means build definitively failed
+    - Exit codes: 0 = success, 127 = command not found/failed, others = various failures
