@@ -26,11 +26,17 @@ export const LoginPage = () => {
       <br />
       <div style={{ display: 'flex', flexFlow: 'column' }}>
         <label>Email</label>
-        <input value={email} onChange={(e) => setEmail(e.target.value)} />
+        <input
+          name="email"
+          type="email"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+        />
       </div>
       <div style={{ display: 'flex', flexFlow: 'column' }}>
         <label>Password</label>
         <input
+          name="password"
           type="password"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
