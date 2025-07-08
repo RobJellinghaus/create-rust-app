@@ -22,7 +22,10 @@ export default defineConfig({
   /* Opt out of parallel tests on CI. */
   workers: process.env.CI ? 1 : undefined,
   /* Reporter to use. See https://playwright.dev/docs/test-reporters */
-  reporter: 'html',
+  reporter: [
+    ['html', { open: 'never' }], // Generate HTML report but don't serve it
+    ['list'] // Also show list output for immediate feedback
+  ],
   
   /* Global setup and teardown */
   globalSetup: require.resolve('./globalSetup'),

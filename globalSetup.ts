@@ -1,5 +1,6 @@
 import { spawn, ChildProcess } from 'child_process';
 import { writeFile } from 'fs/promises';
+import { chromium } from 'playwright';
 import path from 'path';
 
 let serverProcess: ChildProcess;
@@ -217,16 +218,28 @@ async function extractActivationLinkFromLogs(): Promise<string> {
 }
 
 async function activateUser(activationUrl: string): Promise<void> {
-  // Visit the activation URL directly (like a user clicking the email link)
-  const response = await fetch(activationUrl, {
-    method: 'GET',
-    redirect: 'follow'
-  });
+  // Use Playwright to visit the activation page and click the Activate button
+  const browser = await chromium.launch({ headless: true });
+  const page = await browser.newPage();
   
-  if (!response.ok) {
-    throw new Error(`Activation failed: ${response.status} ${response.statusText}`);
+  try {
+    // Navigate to the activation URL
+    await page.goto(activationUrl);
+    await page.waitForLoadState('networkidle');
+    
+    // Look for and click the Activate button
+    await page.click('button:has-text("Activate")');
+    
+    // Wait for any processing to complete
+    await page.waitForLoadState('networkidle');
+    
+    // Give the activation time to process in the database
+    await new Promise(resolve => setTimeout(resolve, 1000));
+    
+    console.log('Successfully clicked Activate button');
+  } catch (error) {
+    throw new Error(`Activation failed: ${error.message}`);
+  } finally {
+    await browser.close();
   }
-  
-  // Give the activation time to process in the database
-  await new Promise(resolve => setTimeout(resolve, 1000));
 }

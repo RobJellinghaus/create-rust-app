@@ -24,8 +24,8 @@ test.describe('GraphQL Features', () => {
     // Navigate to GraphQL todos page
     await page.click('text=Todos (GraphQL)');
     
-    // Check that the page loads (may show todos or empty state)
-    await expect(page.locator('h1, h2, div')).toBeVisible();
+    // Check that the page loads by looking for the specific heading
+    await expect(page.locator('h1:has-text("Todos (GraphQL)")')).toBeVisible();
     
     // The exact content depends on whether there are existing todos
     // For now, just verify the page loads without errors
