@@ -39,7 +39,19 @@ export default defineConfig(async ({ command, mode }) => ({
         'import.meta.env.DEV_SERVER_PORT': String(process.env.DEV_SERVER_PORT),
     },
     plugins: [
-        react(),
+        react({
+            babel: {
+                plugins: [
+                    ['babel-plugin-relay', {
+                        "src": "./src",
+                        "schema": "./src/schema.graphql",
+                        "artifactDirectory": "./src/__generated__",
+                        "language": "typescript",
+                        "eagerESModules": true,
+                    }]
+                ]
+            }
+        }),
     ],
 
     server: {

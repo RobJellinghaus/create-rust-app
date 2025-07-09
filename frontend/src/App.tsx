@@ -1,4 +1,6 @@
 import { useApolloClient } from '@apollo/client'
+import { RelayEnvironmentProvider } from 'react-relay'
+import RelayEnvironment from './RelayEnvironment'
 import { GraphQLPage } from './containers/GraphQLPage'
 import { useAuth, useAuthCheck } from './hooks/useAuth'
 import { AccountPage } from './containers/AccountPage'
@@ -13,6 +15,7 @@ import './App.css'
 import { Home } from './containers/Home'
 import { Todos } from './containers/Todo'
 import { TodosGraphQL } from './containers/TodoGraphQL'
+import { TodoGraphQLRelay } from './containers/TodoGraphQLRelay'
 import { Files } from './containers/Files'
 import { Route, useNavigate, Routes } from 'react-router-dom'
 
@@ -26,44 +29,48 @@ const App = () => {
   
   // @ts-ignore
   return (
-    <div className="App">
-      <div className="App-nav-header">
-        <div style={{ display: 'flex', flex: 1 }}>
-          <a className="NavButton" onClick={() => navigate('/')}>Home</a>
-          <a className="NavButton" onClick={() => navigate('/todos')}>Todos (REST)</a>
-          <a className="NavButton" onClick={() => navigate('/todos-graphql')}>Todos (GraphQL)</a>
-        <a className="NavButton" onClick={() => navigate('/files')}>Files</a>
-          {/* CRA: left-aligned nav buttons */}
-          <a className="NavButton" onClick={() => navigate('/gql')}>GraphQL</a>
-          <a className="NavButton" onClick={() => navigate('/account')}>Account</a>
+    <RelayEnvironmentProvider environment={RelayEnvironment}>
+      <div className="App">
+        <div className="App-nav-header">
+          <div style={{ display: 'flex', flex: 1 }}>
+            <a className="NavButton" onClick={() => navigate('/')}>Home</a>
+            <a className="NavButton" onClick={() => navigate('/todos')}>Todos (REST)</a>
+            <a className="NavButton" onClick={() => navigate('/todos-graphql')}>Todos (GraphQL)</a>
+            <a className="NavButton" onClick={() => navigate('/todos-relay')}>Todos (Relay)</a>
+          <a className="NavButton" onClick={() => navigate('/files')}>Files</a>
+            {/* CRA: left-aligned nav buttons */}
+            <a className="NavButton" onClick={() => navigate('/gql')}>GraphQL</a>
+            <a className="NavButton" onClick={() => navigate('/account')}>Account</a>
+          </div>
+          <div style={{ display: 'flex' }}>
+            {/* CRA: right-aligned nav buttons */}
+              <a className="NavButton" onClick={() => window.location.href = "/swagger-ui/" }>API</a>
+            { auth.isAuthenticated && <a className="NavButton" onClick={() => { auth.logout(); apollo.resetStore(); }}>Logout</a> }
+            { !auth.isAuthenticated && <a className="NavButton" onClick={() => navigate('/login')}>Login/Register</a> }
+          </div>
         </div>
-        <div style={{ display: 'flex' }}>
-          {/* CRA: right-aligned nav buttons */}
-            <a className="NavButton" onClick={() => window.location.href = "/swagger-ui/" }>API</a>
-          { auth.isAuthenticated && <a className="NavButton" onClick={() => { auth.logout(); apollo.resetStore(); }}>Logout</a> }
-          { !auth.isAuthenticated && <a className="NavButton" onClick={() => navigate('/login')}>Login/Register</a> }
+        <div style={{ margin: '0 auto', maxWidth: '800px' }}>
+          <Routes>
+            <Route path="/" element={<Home />} />
+            <Route path="/todos" element={<Todos />} />
+            <Route path="/todos-graphql" element={<TodosGraphQL />} />
+            <Route path="/todos-relay" element={<TodoGraphQLRelay />} />
+            {/* CRA: routes */}
+              <Route path="/gql" element={<GraphQLPage />} />
+              <Route path="/files" element={<Files />} />
+            <Route path="/login" element={<LoginPage />} />
+              <Route path="/oauth/success" element={<OauthLoginResultPage />} />
+              <Route path="/oauth/error" element={<OauthLoginResultPage />} />
+            <Route path="/recovery" element={<RecoveryPage />} />
+            <Route path="/reset" element={<ResetPage />} />
+            <Route path="/activate" element={<ActivationPage />} />
+            <Route path="/register" element={<RegistrationPage />} />
+            <Route path="/account" element={<AccountPage />} />
+      
+          </Routes>
         </div>
       </div>
-      <div style={{ margin: '0 auto', maxWidth: '800px' }}>
-        <Routes>
-          <Route path="/" element={<Home />} />
-          <Route path="/todos" element={<Todos />} />
-          <Route path="/todos-graphql" element={<TodosGraphQL />} />
-          {/* CRA: routes */}
-            <Route path="/gql" element={<GraphQLPage />} />
-            <Route path="/files" element={<Files />} />
-          <Route path="/login" element={<LoginPage />} />
-            <Route path="/oauth/success" element={<OauthLoginResultPage />} />
-            <Route path="/oauth/error" element={<OauthLoginResultPage />} />
-          <Route path="/recovery" element={<RecoveryPage />} />
-          <Route path="/reset" element={<ResetPage />} />
-          <Route path="/activate" element={<ActivationPage />} />
-          <Route path="/register" element={<RegistrationPage />} />
-          <Route path="/account" element={<AccountPage />} />
-    
-        </Routes>
-      </div>
-    </div>
+    </RelayEnvironmentProvider>
   )
 }
 

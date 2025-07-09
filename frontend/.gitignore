@@ -10,6 +10,7 @@
 
 # production
 /dist
+/src/__generated__
 
 # misc
 .DS_Store
@@ -21,3 +22,5 @@
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+
+/test-results

@@ -1,0 +1,33 @@
+scalar DateTime
+
+type Todo {
+  id: Int!
+  text: String!
+  createdAt: DateTime!
+  updatedAt: DateTime!
+}
+
+type PaginationResult {
+  items: [Todo!]!
+  totalItems: Int!
+  page: Int!
+  pageSize: Int!
+  numPages: Int!
+}
+
+type Query {
+  ping: String!
+  todos(page: Int, pageSize: Int): PaginationResult!
+  todo(id: Int!): Todo!
+}
+
+type Mutation {
+  createTodo(text: String!): Todo!
+  updateTodo(id: Int!, text: String): Todo!
+  deleteTodo(id: Int!): Boolean!
+}
+
+schema {
+  query: Query
+  mutation: Mutation
+}
