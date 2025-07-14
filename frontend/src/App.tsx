@@ -1,8 +1,8 @@
 import { useApolloClient } from '@apollo/client'
 import { RelayEnvironmentProvider } from 'react-relay'
-import RelayEnvironment from './RelayEnvironment'
 import { GraphQLPage } from './containers/GraphQLPage'
 import { useAuth, useAuthCheck } from './hooks/useAuth'
+import { useAuthenticatedRelayEnvironment } from './hooks/useAuthenticatedRelayEnvironment'
 import { AccountPage } from './containers/AccountPage'
 import { LoginPage } from './containers/LoginPage'
 import { OauthLoginResultPage } from './containers/OauthLoginResultPage'
@@ -10,7 +10,7 @@ import { ActivationPage } from './containers/ActivationPage'
 import { RegistrationPage } from './containers/RegistrationPage'
 import { RecoveryPage } from './containers/RecoveryPage'
 import { ResetPage } from './containers/ResetPage'
-import React from 'react'
+import React, { Suspense } from 'react'
 import './App.css'
 import { Home } from './containers/Home'
 import { Todos } from './containers/Todo'
@@ -26,10 +26,11 @@ const App = () => {
   const navigate = useNavigate()
   /* CRA: app hooks */
   const apollo = useApolloClient()
+  const relayEnvironment = useAuthenticatedRelayEnvironment()
   
   // @ts-ignore
   return (
-    <RelayEnvironmentProvider environment={RelayEnvironment}>
+    <RelayEnvironmentProvider environment={relayEnvironment}>
       <div className="App">
         <div className="App-nav-header">
           <div style={{ display: 'flex', flex: 1 }}>
@@ -54,7 +55,26 @@ const App = () => {
             <Route path="/" element={<Home />} />
             <Route path="/todos" element={<Todos />} />
             <Route path="/todos-graphql" element={<TodosGraphQL />} />
-            <Route path="/todos-relay" element={<TodoGraphQLRelay />} />
+            {/* 
+              CRITICAL: Relay components that use useLazyLoadQuery MUST be wrapped in <Suspense>
+              
+              Failure mode without Suspense:
+              - When the Relay component mounts, useLazyLoadQuery immediately suspends to fetch data
+              - React throws an error: "A component suspended while responding to synchronous input"
+              - The error boundary catches this and replaces the entire component tree with an error state
+              - User sees a blank page or error boundary instead of a loading state
+              - The GraphQL query may still execute but the UI is broken
+              
+              With Suspense:
+              - The Suspense boundary catches the suspension and shows the fallback UI
+              - Once the query completes, React re-renders with the data
+              - User sees a proper loading state followed by the actual content
+            */}
+            <Route path="/todos-relay" element={
+              <Suspense fallback={<div>Loading Relay todos...</div>}>
+                <TodoGraphQLRelay />
+              </Suspense>
+            } />
             {/* CRA: routes */}
               <Route path="/gql" element={<GraphQLPage />} />
               <Route path="/files" element={<Files />} />

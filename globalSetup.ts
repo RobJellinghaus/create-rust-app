@@ -82,13 +82,58 @@ async function ensureNoServerRunning() {
 }
 
 async function isServerRunning(): Promise<boolean> {
+  let port3000Running = false;
+  let port21012Running = false;
+  
+  // Check if backend server (port 3000) is responding
   try {
-    const response = await fetch('http://localhost:3000', { 
+    await fetch('http://localhost:3000', { 
       signal: AbortSignal.timeout(1000) 
     });
-    return true;
+    port3000Running = true;
   } catch {
-    return false;
+    port3000Running = false;
+  }
+  
+  // Check if frontend dev server (port 21012) is responding
+  try {
+    await fetch('http://localhost:21012', { 
+      signal: AbortSignal.timeout(1000) 
+    });
+    port21012Running = true;
+  } catch {
+    port21012Running = false;
+  }
+  
+  // Only consider server fully running if both ports are running
+  // Any other combination means we need to clean up and restart
+  if (port3000Running && port21012Running) {
+    return true; // Full server is running
+  } else if (!port3000Running && !port21012Running) {
+    return false; // No server running, safe to start
+  } else {
+    // Partial server running - need to clean up
+    console.log(`Partial server detected - port 3000: ${port3000Running ? 'running' : 'free'}, port 21012: ${port21012Running ? 'running' : 'free'}`);
+    console.log('Cleaning up partial server before starting...');
+    
+    // Kill any stale processes
+    const { exec } = require('child_process');
+    const { promisify } = require('util');
+    const execAsync = promisify(exec);
+    
+    try {
+      await execAsync('pkill -f procuretoy || true');
+      await execAsync('pkill -f vite || true');
+      await execAsync('pkill -f fullstack || true');
+      await execAsync('pkill -f node || true');
+      
+      // Wait a moment for processes to die
+      await new Promise(resolve => setTimeout(resolve, 2000));
+    } catch (error) {
+      console.log('Error during cleanup:', error);
+    }
+    
+    return false; // After cleanup, server is not running
   }
 }
 

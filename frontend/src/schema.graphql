@@ -1,7 +1,7 @@
 scalar DateTime
 
 type Todo {
-  id: Int!
+  id: ID!
   text: String!
   createdAt: DateTime!
   updatedAt: DateTime!
