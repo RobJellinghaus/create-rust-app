@@ -27,10 +27,13 @@ impl QueryRoot {
             .map_err(|e| async_graphql::Error::new(format!("Database error: {}", e)))
     }
 
-    async fn todo(&self, ctx: &Context<'_>, id: i32) -> Result<Todo> {
+    async fn todo(&self, ctx: &Context<'_>, id: async_graphql::ID) -> Result<Todo> {
         let mut con = get_connection(ctx)?;
         
-        Todo::read(&mut con, id)
+        let id_int: i32 = id.parse()
+            .map_err(|_| async_graphql::Error::new("Invalid ID format"))?;
+        
+        Todo::read(&mut con, id_int)
             .map_err(|e| async_graphql::Error::new(format!("Database error: {}", e)))
     }
 }

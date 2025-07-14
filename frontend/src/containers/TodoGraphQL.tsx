@@ -30,7 +30,7 @@ const CREATE_TODO = gql`
 `
 
 const UPDATE_TODO = gql`
-  mutation UpdateTodo($id: Int!, $text: String) {
+  mutation UpdateTodo($id: ID!, $text: String) {
     updateTodo(id: $id, text: $text) {
       id
       text
@@ -41,13 +41,13 @@ const UPDATE_TODO = gql`
 `
 
 const DELETE_TODO = gql`
-  mutation DeleteTodo($id: Int!) {
+  mutation DeleteTodo($id: ID!) {
     deleteTodo(id: $id)
   }
 `
 
 interface Todo {
-  id: number
+  id: string
   text: string
   createdAt: string
   updatedAt: string
