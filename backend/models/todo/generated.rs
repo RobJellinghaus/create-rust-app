@@ -8,7 +8,7 @@ pub type ConnectionType = create_rust_app::Connection;
 
 /// Struct representing a row in table `todo`
 #[tsync::tsync]
-#[derive(Debug, Clone, serde::Serialize, serde::Deserialize, diesel::Queryable, diesel::Selectable, diesel::QueryableByName, diesel::Identifiable, async_graphql::SimpleObject)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize, diesel::Queryable, diesel::Selectable, diesel::QueryableByName, diesel::Identifiable)]
 #[diesel(table_name=todo, primary_key(id))]
 pub struct Todo {
     /// Field representing column `id`
@@ -19,6 +19,25 @@ pub struct Todo {
     pub created_at: chrono::DateTime<chrono::Utc>,
     /// Field representing column `updated_at`
     pub updated_at: chrono::DateTime<chrono::Utc>,
+}
+
+#[async_graphql::Object]
+impl Todo {
+    async fn id(&self) -> async_graphql::ID {
+        async_graphql::ID(self.id.to_string())
+    }
+
+    async fn text(&self) -> &String {
+        &self.text
+    }
+
+    async fn created_at(&self) -> &chrono::DateTime<chrono::Utc> {
+        &self.created_at
+    }
+
+    async fn updated_at(&self) -> &chrono::DateTime<chrono::Utc> {
+        &self.updated_at
+    }
 }
 
 /// Create Struct for a row in table `todo` for [`Todo`]
