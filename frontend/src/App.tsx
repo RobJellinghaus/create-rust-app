@@ -3,6 +3,7 @@ import { RelayEnvironmentProvider } from 'react-relay'
 import { GraphQLPage } from './containers/GraphQLPage'
 import { useAuth, useAuthCheck } from './hooks/useAuth'
 import { useAuthenticatedRelayEnvironment } from './hooks/useAuthenticatedRelayEnvironment'
+import { RelayEnvironmentContext } from './hooks/useRelayEnvironmentContext'
 import { AccountPage } from './containers/AccountPage'
 import { LoginPage } from './containers/LoginPage'
 import { OauthLoginResultPage } from './containers/OauthLoginResultPage'
@@ -14,7 +15,6 @@ import React, { Suspense } from 'react'
 import './App.css'
 import { Home } from './containers/Home'
 import { Todos } from './containers/Todo'
-import { TodosGraphQL } from './containers/TodoGraphQL'
 import { TodoGraphQLRelay } from './containers/TodoGraphQLRelay'
 import { Files } from './containers/Files'
 import { Route, useNavigate, Routes } from 'react-router-dom'
@@ -31,12 +31,12 @@ const App = () => {
   // @ts-ignore
   return (
     <RelayEnvironmentProvider environment={relayEnvironment}>
-      <div className="App">
+      <RelayEnvironmentContext.Provider value={relayEnvironment}>
+        <div className="App">
         <div className="App-nav-header">
           <div style={{ display: 'flex', flex: 1 }}>
             <a className="NavButton" onClick={() => navigate('/')}>Home</a>
             <a className="NavButton" onClick={() => navigate('/todos')}>Todos (REST)</a>
-            <a className="NavButton" onClick={() => navigate('/todos-graphql')}>Todos (GraphQL)</a>
             <a className="NavButton" onClick={() => navigate('/todos-relay')}>Todos (Relay)</a>
           <a className="NavButton" onClick={() => navigate('/files')}>Files</a>
             {/* CRA: left-aligned nav buttons */}
@@ -54,7 +54,6 @@ const App = () => {
           <Routes>
             <Route path="/" element={<Home />} />
             <Route path="/todos" element={<Todos />} />
-            <Route path="/todos-graphql" element={<TodosGraphQL />} />
             {/* 
               CRITICAL: Relay components that use useLazyLoadQuery MUST be wrapped in <Suspense>
               
@@ -90,6 +89,7 @@ const App = () => {
           </Routes>
         </div>
       </div>
+      </RelayEnvironmentContext.Provider>
     </RelayEnvironmentProvider>
   )
 }

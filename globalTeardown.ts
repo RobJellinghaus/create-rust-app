@@ -9,10 +9,10 @@ export default async function globalTeardown() {
   console.log('Cleaning up test environment...');
   
   // Check if we should keep server running for faster iteration
-  const keepServer = process.env.PLAYWRIGHT_KEEP_SERVER === 'true';
+  const keepServer = process.env.PROCURETOY_KEEP_SERVER === 'true';
   
   if (keepServer) {
-    console.log('PLAYWRIGHT_KEEP_SERVER=true - leaving server running for faster iteration');
+    console.log('PROCURETOY_KEEP_SERVER=true - leaving server running for faster iteration');
     return;
   }
   

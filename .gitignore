@@ -18,3 +18,6 @@ node_modules/
 # Logs
 fullstack.log
 playwright-server.log
+
+# Debug screenshots
+*-debug.png

@@ -1,5 +1,5 @@
-import React from 'react';
-import { graphql, useFragment, useLazyLoadQuery } from 'react-relay';
+import React, { useState } from 'react';
+import { graphql, useFragment, useLazyLoadQuery, useMutation } from 'react-relay';
 import type { TodoGraphQLRelayQuery } from '../__generated__/TodoGraphQLRelayQuery.graphql.ts';
 
 
@@ -21,21 +21,53 @@ const todosQuery = graphql`
   }
 `;
 
+// Define the create todo mutation
+const createTodoMutation = graphql`
+  mutation TodoGraphQLRelayCreateMutation($text: String!) {
+    createTodo(text: $text) {
+      id
+      text
+      createdAt
+      updatedAt
+    }
+  }
+`;
+
 interface Todo {
-  id: number;
+  id: string;
   text: string;
   createdAt: string;
   updatedAt: string;
 }
 
 export const TodoGraphQLRelay = () => {
+  const [text, setText] = useState<string>('');
+  
   const data = useLazyLoadQuery<TodoGraphQLRelayQuery>(todosQuery, {
     page: 0,
     pageSize: 5,
   });
 
+  const [createTodo, isCreatePending] = useMutation(createTodoMutation);
+
   const todos = data.todos?.items || [];
   const totalItems = data.todos?.totalItems || 0;
+
+  const handleCreateTodo = () => {
+    if (text.trim()) {
+      createTodo({
+        variables: { text },
+        onCompleted: () => {
+          setText('');
+          // Relay will automatically update the cache and re-render
+          window.location.reload(); // Simple refresh for now
+        },
+        onError: (error) => {
+          console.error('Error creating todo:', error);
+        }
+      });
+    }
+  };
 
   return (
     <div style={{ display: 'flex', flexFlow: 'column', textAlign: 'left' }}>
@@ -65,13 +97,17 @@ export const TodoGraphQLRelay = () => {
           <input
             style={{ flex: 1 }}
             placeholder="New todo..."
-            disabled={true}
+            value={text}
+            onChange={(e) => setText(e.target.value)}
+            onKeyPress={(e) => e.key === 'Enter' && handleCreateTodo()}
+            disabled={isCreatePending}
           />
           <button
-            disabled={true}
+            onClick={handleCreateTodo}
+            disabled={isCreatePending || !text.trim()}
             style={{ height: '40px' }}
           >
-            Add (Coming Soon)
+            {isCreatePending ? 'Adding...' : 'Add'}
           </button>
         </div>
       </div>

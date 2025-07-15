@@ -41,9 +41,9 @@ export default defineConfig({
   },
 
   /* Global timeout settings */
-  timeout: 20000, // 20 seconds per test
+  timeout: 10000, // 10 seconds per test
   expect: {
-    timeout: 5000, // 5 seconds for expect assertions
+    timeout: 3000, // 3 seconds for expect assertions
   },
 
   /* Configure projects for major browsers */

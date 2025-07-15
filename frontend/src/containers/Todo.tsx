@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react'
+import { useRelayEnvironment, invalidateRelayTodoCache } from '../hooks/useRelayEnvironmentContext'
 
 const TodoAPI = {
   get: async (page: number, size: number) =>
@@ -34,6 +35,9 @@ export const Todos = () => {
   const [page, setPage] = useState<number>(0)
   const [numPages, setPages] = useState<number>(1)
   const [processing, setProcessing] = useState<boolean>(false)
+  
+  // Get Relay environment for cache invalidation
+  const relayEnvironment = useRelayEnvironment()
 
   const createTodo = async (todo: string) => {
     setProcessing(true)
@@ -42,6 +46,10 @@ export const Todos = () => {
     setTodos(todos)
     setCreatedTodo(createdTodo)
     setText('')
+    
+    // Invalidate Relay cache so the Relay component picks up the changes
+    invalidateRelayTodoCache(relayEnvironment)
+    
     setProcessing(false)
   }
 
@@ -51,6 +59,10 @@ export const Todos = () => {
     setTodos(await TodoAPI.get(page, pageSize))
     setText('')
     editTodo(null)
+    
+    // Invalidate Relay cache so the Relay component picks up the changes
+    invalidateRelayTodoCache(relayEnvironment)
+    
     setProcessing(false)
   }
 
@@ -58,6 +70,10 @@ export const Todos = () => {
     setProcessing(true)
     await TodoAPI.delete(todo.id)
     setTodos(await TodoAPI.get(page, pageSize))
+    
+    // Invalidate Relay cache so the Relay component picks up the changes
+    invalidateRelayTodoCache(relayEnvironment)
+    
     setProcessing(false)
   }
 
