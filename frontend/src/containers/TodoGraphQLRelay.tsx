@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { graphql, useFragment, useLazyLoadQuery, useMutation, useRelayEnvironment } from 'react-relay';
+import React, { useState, useEffect } from 'react';
+import { graphql, useFragment, usePreloadedQuery, useMutation, useRelayEnvironment, useQueryLoader } from 'react-relay';
 import type { TodoGraphQLRelayQuery } from '../__generated__/TodoGraphQLRelayQuery.graphql.ts';
 
 // Define the query using Relay's graphql template literal
@@ -39,14 +39,17 @@ interface Todo {
   updatedAt: string;
 }
 
-// Internal component that will be remounted
-const TodoGraphQLRelayContent = ({ onMutationCompleted }: { onMutationCompleted: () => void }) => {
+// Internal component that uses preloaded query
+const TodoGraphQLRelayContent = ({ 
+  queryRef, 
+  onMutationCompleted 
+}: { 
+  queryRef: any; 
+  onMutationCompleted: () => void;
+}) => {
   const [text, setText] = useState<string>('');
 
-  const data = useLazyLoadQuery<TodoGraphQLRelayQuery>(todosQuery, {
-    page: 0,
-    pageSize: 5,
-  });
+  const data = usePreloadedQuery<TodoGraphQLRelayQuery>(todosQuery, queryRef);
 
   const [createTodo, isCreatePending] = useMutation(createTodoMutation);
 
@@ -126,18 +129,28 @@ const TodoGraphQLRelayContent = ({ onMutationCompleted }: { onMutationCompleted:
   );
 };
 
-// Outer component that handles remounting
+// Outer component that manages query loading
 export const TodoGraphQLRelay = () => {
-  const [remountKey, setRemountKey] = useState(0);
+  const [queryRef, loadQuery] = useQueryLoader<TodoGraphQLRelayQuery>(todosQuery);
+  
+  // Load the query initially
+  useEffect(() => {
+    loadQuery({ page: 0, pageSize: 5 });
+  }, [loadQuery]);
   
   const handleMutationCompleted = () => {
-    // Force remount by changing the key
-    setRemountKey(prev => prev + 1);
+    // Reload the query after mutation
+    loadQuery({ page: 0, pageSize: 5 });
   };
+
+  // Show loading state until query is loaded
+  if (!queryRef) {
+    return <div>Loading Relay todos...</div>;
+  }
 
   return (
     <TodoGraphQLRelayContent 
-      key={remountKey} 
+      queryRef={queryRef}
       onMutationCompleted={handleMutationCompleted} 
     />
   );

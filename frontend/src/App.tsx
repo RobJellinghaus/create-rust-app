@@ -1,6 +1,4 @@
-import { useApolloClient } from '@apollo/client'
 import { RelayEnvironmentProvider } from 'react-relay'
-import { GraphQLPage } from './containers/GraphQLPage'
 import { useAuth, useAuthCheck } from './hooks/useAuth'
 import { useAuthenticatedRelayEnvironment } from './hooks/useAuthenticatedRelayEnvironment'
 import { RelayEnvironmentContext } from './hooks/useRelayEnvironmentContext'
@@ -25,7 +23,6 @@ const App = () => {
     
   const navigate = useNavigate()
   /* CRA: app hooks */
-  const apollo = useApolloClient()
   const relayEnvironment = useAuthenticatedRelayEnvironment()
   
   // @ts-ignore
@@ -40,13 +37,12 @@ const App = () => {
             <a className="NavButton" onClick={() => navigate('/todos-relay')}>Todos (Relay)</a>
           <a className="NavButton" onClick={() => navigate('/files')}>Files</a>
             {/* CRA: left-aligned nav buttons */}
-            <a className="NavButton" onClick={() => navigate('/gql')}>GraphQL</a>
             <a className="NavButton" onClick={() => navigate('/account')}>Account</a>
           </div>
           <div style={{ display: 'flex' }}>
             {/* CRA: right-aligned nav buttons */}
               <a className="NavButton" onClick={() => window.location.href = "/swagger-ui/" }>API</a>
-            { auth.isAuthenticated && <a className="NavButton" onClick={() => { auth.logout(); apollo.resetStore(); }}>Logout</a> }
+            { auth.isAuthenticated && <a className="NavButton" onClick={() => { auth.logout(); }}>Logout</a> }
             { !auth.isAuthenticated && <a className="NavButton" onClick={() => navigate('/login')}>Login/Register</a> }
           </div>
         </div>
@@ -75,7 +71,6 @@ const App = () => {
               </Suspense>
             } />
             {/* CRA: routes */}
-              <Route path="/gql" element={<GraphQLPage />} />
               <Route path="/files" element={<Files />} />
             <Route path="/login" element={<LoginPage />} />
               <Route path="/oauth/success" element={<OauthLoginResultPage />} />

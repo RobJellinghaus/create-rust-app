@@ -137,7 +137,7 @@ export const Todos = () => {
                   </div>
                 </div>
             ) : (
-                <div className="Form">
+                <div key={todo.id} className="Form">
                   <div style={{ flex: 1 }}>
                     #{todo.id} {todo.text}
                   </div>
