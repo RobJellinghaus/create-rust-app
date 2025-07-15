@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { graphql, useFragment, usePreloadedQuery, useMutation, useRelayEnvironment, useQueryLoader } from 'react-relay';
+import { graphql, usePreloadedQuery, useMutation, useQueryLoader } from 'react-relay';
 import type { TodoGraphQLRelayQuery } from '../__generated__/TodoGraphQLRelayQuery.graphql.ts';
 
 // Define the query using Relay's graphql template literal
@@ -42,10 +42,10 @@ interface Todo {
 // Internal component that uses preloaded query
 const TodoGraphQLRelayContent = ({ 
   queryRef, 
-  onMutationCompleted 
+  loadQuery 
 }: { 
   queryRef: any; 
-  onMutationCompleted: () => void;
+  loadQuery: (variables: { page: number; pageSize: number }, options?: { fetchPolicy?: string }) => void;
 }) => {
   const [text, setText] = useState<string>('');
 
@@ -62,9 +62,11 @@ const TodoGraphQLRelayContent = ({
         variables: { text },
         onCompleted: () => {
           setText('');
-          // Trigger component remount
-          console.debug("Calling onMutationCompleted()");
-          onMutationCompleted();
+          // Force network fetch to bypass cache
+          loadQuery(
+            { page: 0, pageSize: 5 },
+            { fetchPolicy: 'network-only' }
+          );
         },
         onError: (error) => {
           console.error('Error creating todo:', error);
@@ -137,11 +139,6 @@ export const TodoGraphQLRelay = () => {
   useEffect(() => {
     loadQuery({ page: 0, pageSize: 5 });
   }, [loadQuery]);
-  
-  const handleMutationCompleted = () => {
-    // Reload the query after mutation
-    loadQuery({ page: 0, pageSize: 5 });
-  };
 
   // Show loading state until query is loaded
   if (!queryRef) {
@@ -150,8 +147,8 @@ export const TodoGraphQLRelay = () => {
 
   return (
     <TodoGraphQLRelayContent 
-      queryRef={queryRef}
-      onMutationCompleted={handleMutationCompleted} 
+      queryRef={queryRef} 
+      loadQuery={loadQuery}
     />
   );
 };
