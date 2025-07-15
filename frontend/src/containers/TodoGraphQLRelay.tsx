@@ -32,6 +32,13 @@ const createTodoMutation = graphql`
   }
 `;
 
+// Define the delete todo mutation
+const deleteTodoMutation = graphql`
+  mutation TodoGraphQLRelayDeleteMutation($id: ID!) {
+    deleteTodo(id: $id)
+  }
+`;
+
 interface Todo {
   id: string;
   text: string;
@@ -52,6 +59,7 @@ const TodoGraphQLRelayContent = ({
   const data = usePreloadedQuery<TodoGraphQLRelayQuery>(todosQuery, queryRef);
 
   const [createTodo, isCreatePending] = useMutation(createTodoMutation);
+  const [deleteTodo, isDeletePending] = useMutation(deleteTodoMutation);
 
   const todos = data.todos?.items || [];
   const totalItems = data.todos?.totalItems || 0;
@@ -75,6 +83,24 @@ const TodoGraphQLRelayContent = ({
     }
   };
 
+  const handleDeleteTodo = (todoId: string) => {
+    deleteTodo({
+      variables: { id: todoId },
+      onCompleted: (response) => {
+        if (response.deleteTodo) {
+          // Force network fetch to bypass cache and show updated list
+          loadQuery(
+            { page: 0, pageSize: 5 },
+            { fetchPolicy: 'network-only' }
+          );
+        }
+      },
+      onError: (error) => {
+        console.error('Error deleting todo:', error);
+      }
+    });
+  };
+
   return (
     <div style={{ display: 'flex', flexFlow: 'column', textAlign: 'left' }}>
       <h1>Todos (Relay)</h1>
@@ -91,8 +117,19 @@ const TodoGraphQLRelayContent = ({
               edit
             </a>
             &nbsp;
-            <a href="#" className="App-link">
-              delete
+            <a 
+              href="#" 
+              className="App-link"
+              onClick={(e) => {
+                e.preventDefault();
+                handleDeleteTodo(todo.id);
+              }}
+              style={{ 
+                opacity: isDeletePending ? 0.5 : 1,
+                pointerEvents: isDeletePending ? 'none' : 'auto'
+              }}
+            >
+              {isDeletePending ? 'deleting...' : 'delete'}
             </a>
           </div>
         </div>

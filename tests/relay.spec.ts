@@ -46,16 +46,13 @@ test.describe('Relay Todo Tests', () => {
     await page.click('a:has-text("Todos (Relay)")');
     await expect(page.locator('text=Test Relay Display')).toBeVisible();
     
-    // Clean up - delete the todo via REST
-    await page.click('a:has-text("Todos (REST)")');
+    // Clean up - delete the todo via Relay!
     await page.click('a:has-text("delete")');
-    
-    // Verify the todo is gone from REST page
     await expect(page.locator('text=Test Relay Display')).not.toBeVisible();
     await expect(page.locator('text=No todos, create one!')).toBeVisible();
     
-    // Now verify that Relay page also shows empty state
-    await page.click('a:has-text("Todos (Relay)")');
+    // Verify the todo is gone from REST page
+    await page.click('a:has-text("Todos (REST)")');
     await expect(page.locator('text=Test Relay Display')).not.toBeVisible();
     await expect(page.locator('text=No todos, create one!')).toBeVisible();
   });

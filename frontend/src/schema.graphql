@@ -23,8 +23,8 @@ type Query {
 
 type Mutation {
   createTodo(text: String!): Todo!
-  updateTodo(id: Int!, text: String): Todo!
-  deleteTodo(id: Int!): Boolean!
+  updateTodo(id: ID!, text: String): Todo!
+  deleteTodo(id: ID!): Boolean!
 }
 
 schema {
