@@ -59,8 +59,7 @@ export const TodoGraphQLRelay = () => {
         variables: { text },
         onCompleted: () => {
           setText('');
-          // Relay will automatically update the cache and re-render
-          window.location.reload(); // Simple refresh for now
+          // Remove the reload - let Relay handle it automatically
         },
         onError: (error) => {
           console.error('Error creating todo:', error);
