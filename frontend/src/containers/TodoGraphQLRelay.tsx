@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
-import { graphql, useFragment, useLazyLoadQuery, useMutation } from 'react-relay';
+import { graphql, useFragment, useLazyLoadQuery, useMutation, useRelayEnvironment } from 'react-relay';
 import type { TodoGraphQLRelayQuery } from '../__generated__/TodoGraphQLRelayQuery.graphql.ts';
-
 
 // Define the query using Relay's graphql template literal
 const todosQuery = graphql`
@@ -40,9 +39,10 @@ interface Todo {
   updatedAt: string;
 }
 
-export const TodoGraphQLRelay = () => {
+// Internal component that will be remounted
+const TodoGraphQLRelayContent = ({ onMutationCompleted }: { onMutationCompleted: () => void }) => {
   const [text, setText] = useState<string>('');
-  
+
   const data = useLazyLoadQuery<TodoGraphQLRelayQuery>(todosQuery, {
     page: 0,
     pageSize: 5,
@@ -59,7 +59,9 @@ export const TodoGraphQLRelay = () => {
         variables: { text },
         onCompleted: () => {
           setText('');
-          // Remove the reload - let Relay handle it automatically
+          // Trigger component remount
+          console.debug("Calling onMutationCompleted()");
+          onMutationCompleted();
         },
         onError: (error) => {
           console.error('Error creating todo:', error);
@@ -121,5 +123,22 @@ export const TodoGraphQLRelay = () => {
         </div>
       </div>
     </div>
+  );
+};
+
+// Outer component that handles remounting
+export const TodoGraphQLRelay = () => {
+  const [remountKey, setRemountKey] = useState(0);
+  
+  const handleMutationCompleted = () => {
+    // Force remount by changing the key
+    setRemountKey(prev => prev + 1);
+  };
+
+  return (
+    <TodoGraphQLRelayContent 
+      key={remountKey} 
+      onMutationCompleted={handleMutationCompleted} 
+    />
   );
 };
