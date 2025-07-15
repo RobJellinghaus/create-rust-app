@@ -180,4 +180,122 @@ test.describe('Relay Todo Tests', () => {
     await page.fill('input[placeholder="New todo..."]', '');
     await expect(page.locator('button:has-text("Add")')).toBeDisabled();
   });
+
+  test('should allow editing a todo item', async ({ page }) => {
+    // First create a todo to edit
+    const originalText = 'Test Todo for Editing';
+    await page.fill('input[placeholder="New todo..."]', originalText);
+    await page.click('button:has-text("Add")');
+    await expect(page.locator(`text=${originalText}`)).toBeVisible();
+    
+    // Click the edit link
+    await page.click('a:has-text("edit")');
+    
+    // Verify edit mode is active - input should be visible with current text
+    const editInput = page.locator(`input[value="${originalText}"]`);
+    await expect(editInput).toBeVisible();
+    await expect(editInput).toBeFocused();
+    
+    // Verify save/cancel buttons are shown instead of edit/delete
+    await expect(page.locator('a:has-text("save")')).toBeVisible();
+    await expect(page.locator('a:has-text("cancel")')).toBeVisible();
+    await expect(page.locator('a:has-text("edit")')).not.toBeVisible();
+    await expect(page.locator('a:has-text("delete")')).not.toBeVisible();
+    
+    // Edit the text
+    const editedText = 'Updated Todo Text';
+    await page.fill(`input[value="${originalText}"]`, editedText);
+    
+    // Save the changes
+    await page.click('a:has-text("save")');
+    
+    // Verify the todo was updated
+    await expect(page.locator(`text=${editedText}`)).toBeVisible();
+    await expect(page.locator(`text=${originalText}`)).not.toBeVisible();
+    
+    // Verify we're back in view mode
+    await expect(page.locator('a:has-text("edit")')).toBeVisible();
+    await expect(page.locator('a:has-text("delete")')).toBeVisible();
+    await expect(page.locator('a:has-text("save")')).not.toBeVisible();
+    await expect(page.locator('a:has-text("cancel")')).not.toBeVisible();
+    
+    // Clean up
+    await page.click('a:has-text("delete")');
+  });
+
+  test('should allow canceling todo edit', async ({ page }) => {
+    // Create a todo to edit
+    const originalText = 'Test Cancel Edit';
+    await page.fill('input[placeholder="New todo..."]', originalText);
+    await page.click('button:has-text("Add")');
+    await expect(page.locator(`text=${originalText}`)).toBeVisible();
+    
+    // Start editing
+    await page.click('a:has-text("edit")');
+    await expect(page.locator(`input[value="${originalText}"]`)).toBeVisible();
+    
+    // Make changes but don't save
+    await page.fill(`input[value="${originalText}"]`, 'This should be canceled');
+    
+    // Cancel the edit
+    await page.click('a:has-text("cancel")');
+    
+    // Verify original text is still there
+    await expect(page.locator(`text=${originalText}`)).toBeVisible();
+    await expect(page.locator('text=This should be canceled')).not.toBeVisible();
+    
+    // Verify we're back in view mode
+    await expect(page.locator('a:has-text("edit")')).toBeVisible();
+    await expect(page.locator('a:has-text("delete")')).toBeVisible();
+    
+    // Clean up
+    await page.click('a:has-text("delete")');
+  });
+
+  test('should support Enter key to save edit', async ({ page }) => {
+    // Create a todo to edit
+    const originalText = 'Test Enter Key Save';
+    await page.fill('input[placeholder="New todo..."]', originalText);
+    await page.click('button:has-text("Add")');
+    await expect(page.locator(`text=${originalText}`)).toBeVisible();
+    
+    // Start editing
+    await page.click('a:has-text("edit")');
+    await expect(page.locator(`input[value="${originalText}"]`)).toBeVisible();
+    
+    // Edit text and press Enter (use a more generic selector after filling)
+    const editedText = 'ENTER SAVED';
+    await page.fill(`input[value="${originalText}"]`, editedText);
+    await page.locator('input').first().press('Enter');
+    
+    // Verify the todo was updated
+    await expect(page.locator(`text=${editedText}`)).toBeVisible();
+    await expect(page.locator('a:has-text("edit")')).toBeVisible();
+    
+    // Clean up
+    await page.click('a:has-text("delete")');
+  });
+
+  test('should support Escape key to cancel edit', async ({ page }) => {
+    // Create a todo to edit
+    const originalText = 'Test Escape Key Cancel';
+    await page.fill('input[placeholder="New todo..."]', originalText);
+    await page.click('button:has-text("Add")');
+    await expect(page.locator(`text=${originalText}`)).toBeVisible();
+    
+    // Start editing
+    await page.click('a:has-text("edit")');
+    await expect(page.locator(`input[value="${originalText}"]`)).toBeVisible();
+    
+    // Edit text and press Escape
+    await page.fill(`input[value="${originalText}"]`, 'This should be canceled by Escape');
+    await page.locator('input').first().press('Escape');
+    
+    // Verify original text is preserved
+    await expect(page.locator(`text=${originalText}`)).toBeVisible();
+    await expect(page.locator('a:has-text("edit")')).toBeVisible();
+    
+    // Clean up
+    await page.click('a:has-text("delete")');
+  });
 });

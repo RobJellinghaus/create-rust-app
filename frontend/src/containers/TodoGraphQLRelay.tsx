@@ -39,6 +39,18 @@ const deleteTodoMutation = graphql`
   }
 `;
 
+// Define the update todo mutation
+const updateTodoMutation = graphql`
+  mutation TodoGraphQLRelayUpdateMutation($id: ID!, $text: String!) {
+    updateTodo(id: $id, text: $text) {
+      id
+      text
+      createdAt
+      updatedAt
+    }
+  }
+`;
+
 interface Todo {
   id: string;
   text: string;
@@ -55,11 +67,14 @@ const TodoGraphQLRelayContent = ({
   loadQuery: (variables: { page: number; pageSize: number }, options?: { fetchPolicy?: string }) => void;
 }) => {
   const [text, setText] = useState<string>('');
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editText, setEditText] = useState<string>('');
 
   const data = usePreloadedQuery<TodoGraphQLRelayQuery>(todosQuery, queryRef);
 
   const [createTodo, isCreatePending] = useMutation(createTodoMutation);
   const [deleteTodo, isDeletePending] = useMutation(deleteTodoMutation);
+  const [updateTodo, isUpdatePending] = useMutation(updateTodoMutation);
 
   const todos = data.todos?.items || [];
   const totalItems = data.todos?.totalItems || 0;
@@ -101,6 +116,36 @@ const TodoGraphQLRelayContent = ({
     });
   };
 
+  const handleStartEdit = (todo: Todo) => {
+    setEditingId(todo.id);
+    setEditText(todo.text);
+  };
+
+  const handleCancelEdit = () => {
+    setEditingId(null);
+    setEditText('');
+  };
+
+  const handleSaveEdit = () => {
+    if (editingId && editText.trim()) {
+      updateTodo({
+        variables: { id: editingId, text: editText.trim() },
+        onCompleted: () => {
+          setEditingId(null);
+          setEditText('');
+          // Force network fetch to bypass cache
+          loadQuery(
+            { page: 0, pageSize: 5 },
+            { fetchPolicy: 'network-only' }
+          );
+        },
+        onError: (error) => {
+          console.error('Error updating todo:', error);
+        }
+      });
+    }
+  };
+
   return (
     <div style={{ display: 'flex', flexFlow: 'column', textAlign: 'left' }}>
       <h1>Todos (Relay)</h1>
@@ -110,27 +155,81 @@ const TodoGraphQLRelayContent = ({
       {todos.map((todo: Todo) => (
         <div key={todo.id} className="Form">
           <div style={{ flex: 1 }}>
-            #{todo.id} {todo.text}
+            #{todo.id} 
+            {editingId === todo.id ? (
+              <input
+                value={editText}
+                onChange={(e) => setEditText(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') handleSaveEdit();
+                  if (e.key === 'Escape') handleCancelEdit();
+                }}
+                autoFocus
+                disabled={isUpdatePending}
+                style={{ marginLeft: '8px', flex: 1 }}
+              />
+            ) : (
+              <span style={{ marginLeft: '8px' }}>{todo.text}</span>
+            )}
           </div>
           <div>
-            <a href="#" className="App-link">
-              edit
-            </a>
-            &nbsp;
-            <a 
-              href="#" 
-              className="App-link"
-              onClick={(e) => {
-                e.preventDefault();
-                handleDeleteTodo(todo.id);
-              }}
-              style={{ 
-                opacity: isDeletePending ? 0.5 : 1,
-                pointerEvents: isDeletePending ? 'none' : 'auto'
-              }}
-            >
-              {isDeletePending ? 'deleting...' : 'delete'}
-            </a>
+            {editingId === todo.id ? (
+              <>
+                <a 
+                  href="#" 
+                  className="App-link"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    handleSaveEdit();
+                  }}
+                  style={{ 
+                    opacity: isUpdatePending ? 0.5 : 1,
+                    pointerEvents: isUpdatePending ? 'none' : 'auto'
+                  }}
+                >
+                  {isUpdatePending ? 'saving...' : 'save'}
+                </a>
+                &nbsp;
+                <a 
+                  href="#" 
+                  className="App-link"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    handleCancelEdit();
+                  }}
+                >
+                  cancel
+                </a>
+              </>
+            ) : (
+              <>
+                <a 
+                  href="#" 
+                  className="App-link"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    handleStartEdit(todo);
+                  }}
+                >
+                  edit
+                </a>
+                &nbsp;
+                <a 
+                  href="#" 
+                  className="App-link"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    handleDeleteTodo(todo.id);
+                  }}
+                  style={{ 
+                    opacity: isDeletePending ? 0.5 : 1,
+                    pointerEvents: isDeletePending ? 'none' : 'auto'
+                  }}
+                >
+                  {isDeletePending ? 'deleting...' : 'delete'}
+                </a>
+              </>
+            )}
           </div>
         </div>
       ))}
