@@ -7,8 +7,32 @@ type Todo {
   updatedAt: DateTime!
 }
 
-type PaginationResult {
+type Supplier {
+  id: ID!
+  name: String!
+  address: String!
+  city: String!
+  state: String!
+  zipCode: String!
+  country: String!
+  contactName: String!
+  contactEmail: String!
+  contactPhone: String!
+  website: String
+  createdAt: DateTime!
+  updatedAt: DateTime!
+}
+
+type TodoPaginationResult {
   items: [Todo!]!
+  totalItems: Int!
+  page: Int!
+  pageSize: Int!
+  numPages: Int!
+}
+
+type SupplierPaginationResult {
+  items: [Supplier!]!
   totalItems: Int!
   page: Int!
   pageSize: Int!
@@ -17,14 +41,45 @@ type PaginationResult {
 
 type Query {
   ping: String!
-  todos(page: Int, pageSize: Int): PaginationResult!
-  todo(id: Int!): Todo!
+  todos(page: Int, pageSize: Int): TodoPaginationResult!
+  todo(id: ID!): Todo!
+  suppliers(page: Int, pageSize: Int): SupplierPaginationResult!
+  supplier(id: ID!): Supplier!
+}
+
+input CreateSupplierInput {
+  name: String!
+  address: String!
+  city: String!
+  state: String!
+  zipCode: String!
+  country: String!
+  contactName: String!
+  contactEmail: String!
+  contactPhone: String!
+  website: String
+}
+
+input UpdateSupplierInput {
+  name: String
+  address: String
+  city: String
+  state: String
+  zipCode: String
+  country: String
+  contactName: String
+  contactEmail: String
+  contactPhone: String
+  website: String
 }
 
 type Mutation {
   createTodo(text: String!): Todo!
   updateTodo(id: ID!, text: String): Todo!
   deleteTodo(id: ID!): Boolean!
+  createSupplier(input: CreateSupplierInput!): Supplier!
+  updateSupplier(id: ID!, input: UpdateSupplierInput!): Supplier!
+  deleteSupplier(id: ID!): Boolean!
 }
 
 schema {

@@ -58,6 +58,24 @@ diesel::table! {
 }
 
 diesel::table! {
+    suppliers (id) {
+        id -> Int4,
+        name -> Varchar,
+        address -> Text,
+        city -> Varchar,
+        state -> Varchar,
+        zip_code -> Varchar,
+        country -> Varchar,
+        contact_name -> Varchar,
+        contact_email -> Varchar,
+        contact_phone -> Varchar,
+        website -> Nullable<Text>,
+        created_at -> Timestamptz,
+        updated_at -> Timestamptz,
+    }
+}
+
+diesel::table! {
     todo (id) {
         id -> Int4,
         text -> Text,
@@ -131,6 +149,7 @@ diesel::allow_tables_to_appear_in_same_query!(
     attachments,
     fang_tasks,
     role_permissions,
+    suppliers,
     todo,
     user_oauth2_links,
     user_permissions,
