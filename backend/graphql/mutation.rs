@@ -1,7 +1,7 @@
 use async_graphql::{Context, Object, Result, InputObject};
 use create_rust_app::Database;
 use crate::models::todo::{Todo, CreateTodo, UpdateTodo, ConnectionType};
-use crate::models::supplier::{Supplier, CreateSupplier, UpdateSupplier};
+use crate::models::suppliers::{Suppliers, CreateSuppliers, UpdateSuppliers};
 
 fn get_connection(ctx: &Context<'_>) -> Result<ConnectionType> {
     let db = ctx.data::<Database>()?;
@@ -70,10 +70,10 @@ impl MutationRoot {
             .map_err(|e| async_graphql::Error::new(format!("Database error: {}", e)))
     }
 
-    async fn create_supplier(&self, ctx: &Context<'_>, input: CreateSupplierInput) -> Result<Supplier> {
+    async fn create_supplier(&self, ctx: &Context<'_>, input: CreateSupplierInput) -> Result<Suppliers> {
         let mut con = get_connection(ctx)?;
         
-        let new_supplier = CreateSupplier {
+        let new_supplier = CreateSuppliers {
             name: input.name,
             address: input.address,
             city: input.city,
@@ -86,17 +86,17 @@ impl MutationRoot {
             website: input.website,
         };
         
-        Supplier::create(&mut con, &new_supplier)
+        Suppliers::create(&mut con, &new_supplier)
             .map_err(|e| async_graphql::Error::new(format!("Database error: {}", e)))
     }
 
-    async fn update_supplier(&self, ctx: &Context<'_>, id: async_graphql::ID, input: UpdateSupplierInput) -> Result<Supplier> {
+    async fn update_supplier(&self, ctx: &Context<'_>, id: async_graphql::ID, input: UpdateSupplierInput) -> Result<Suppliers> {
         let mut con = get_connection(ctx)?;
         
         let id_int: i32 = id.parse()
             .map_err(|_| async_graphql::Error::new("Invalid ID format"))?;
         
-        let update_supplier = UpdateSupplier {
+        let update_supplier = UpdateSuppliers {
             name: input.name,
             address: input.address,
             city: input.city,
@@ -106,11 +106,11 @@ impl MutationRoot {
             contact_name: input.contact_name,
             contact_email: input.contact_email,
             contact_phone: input.contact_phone,
-            website: input.website,
+            website: input.website.map(Some),
             ..Default::default()
         };
         
-        Supplier::update(&mut con, id_int, &update_supplier)
+        Suppliers::update(&mut con, id_int, &update_supplier)
             .map_err(|e| async_graphql::Error::new(format!("Database error: {}", e)))
     }
 
@@ -120,7 +120,7 @@ impl MutationRoot {
         let id_int: i32 = id.parse()
             .map_err(|_| async_graphql::Error::new("Invalid ID format"))?;
         
-        Supplier::delete(&mut con, id_int)
+        Suppliers::delete(&mut con, id_int)
             .map(|count| count > 0)
             .map_err(|e| async_graphql::Error::new(format!("Database error: {}", e)))
     }

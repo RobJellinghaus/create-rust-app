@@ -1,6 +1,6 @@
 use actix_web::{delete, Error, get, HttpResponse, post, put, Result, web::{Data, Json, Path, Query}};
 use create_rust_app::Database;
-use crate::models::supplier::{CreateSupplier, Supplier, SupplierFilter, UpdateSupplier};
+use crate::models::suppliers::{CreateSuppliers, Suppliers, SuppliersFilter, UpdateSuppliers};
 
 #[tsync::tsync]
 #[derive(serde::Deserialize)]
@@ -16,7 +16,7 @@ async fn index(
 ) -> HttpResponse {
     let mut con = db.get_connection().unwrap();
 
-    let result = Supplier::paginate(&mut con, info.page, info.page_size, SupplierFilter::default());
+    let result = Suppliers::paginate(&mut con, info.page, info.page_size, SuppliersFilter::default());
 
     if result.is_ok() {
         HttpResponse::Ok().json(result.unwrap())
@@ -32,7 +32,7 @@ async fn read(
 ) -> HttpResponse {
     let mut con = db.get_connection().unwrap();
 
-    let result = Supplier::read(&mut con, item_id.into_inner());
+    let result = Suppliers::read(&mut con, item_id.into_inner());
 
     if result.is_ok() {
         let supplier = result.unwrap();
@@ -46,11 +46,11 @@ async fn read(
 #[post("")]
 async fn create(
     db: Data<Database>,
-    Json(item): Json<CreateSupplier>,
+    Json(item): Json<CreateSuppliers>,
 ) -> Result<HttpResponse, Error> {
     let mut con = db.get_connection().unwrap();
 
-    let result = Supplier::create(&mut con, &item).expect("Creation error");
+    let result = Suppliers::create(&mut con, &item).expect("Creation error");
 
     Ok(HttpResponse::Created().json(result))
 }
@@ -59,11 +59,11 @@ async fn create(
 async fn update(
     db: Data<Database>,
     item_id: Path<i32>,
-    Json(item): Json<UpdateSupplier>,
+    Json(item): Json<UpdateSuppliers>,
 ) -> HttpResponse {
     let mut con = db.get_connection().unwrap();
 
-    let result = Supplier::update(&mut con, item_id.into_inner(), &item);
+    let result = Suppliers::update(&mut con, item_id.into_inner(), &item);
 
     if result.is_ok() {
         HttpResponse::Ok().finish()
@@ -79,7 +79,7 @@ async fn destroy(
 ) -> HttpResponse {
     let mut con = db.get_connection().unwrap();
 
-    let result = Supplier::delete(&mut con, item_id.into_inner());
+    let result = Suppliers::delete(&mut con, item_id.into_inner());
 
     if result.is_ok() {
         HttpResponse::Ok().finish()

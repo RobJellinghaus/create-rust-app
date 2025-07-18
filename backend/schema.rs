@@ -60,14 +60,22 @@ diesel::table! {
 diesel::table! {
     suppliers (id) {
         id -> Int4,
+        #[max_length = 255]
         name -> Varchar,
         address -> Text,
+        #[max_length = 100]
         city -> Varchar,
+        #[max_length = 100]
         state -> Varchar,
+        #[max_length = 20]
         zip_code -> Varchar,
+        #[max_length = 100]
         country -> Varchar,
+        #[max_length = 255]
         contact_name -> Varchar,
+        #[max_length = 255]
         contact_email -> Varchar,
+        #[max_length = 50]
         contact_phone -> Varchar,
         website -> Nullable<Text>,
         created_at -> Timestamptz,
