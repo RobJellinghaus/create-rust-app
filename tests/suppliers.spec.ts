@@ -10,14 +10,46 @@ test.describe('Supplier Tests', () => {
     await page.click('a:has-text("Suppliers")');
     await page.waitForLoadState('networkidle');
 
+    // Wait for React Suspense to resolve and suppliers to load
+    await page.waitForSelector('h1:has-text("Suppliers")', { timeout: 5000 });
+    
+    // Wait for either suppliers to load or empty state to appear
+    try {
+      await page.waitForFunction(() => {
+        const deleteLinks = Array.from(document.querySelectorAll('a')).filter(a => a.textContent?.includes('delete'));
+        const hasSuppliers = deleteLinks.length > 0;
+        const hasEmptyState = document.textContent?.includes('No suppliers found. Create one to get started!');
+        return hasSuppliers || hasEmptyState;
+      }, { timeout: 5000 });
+    } catch (e) {
+      console.log('Timeout waiting for suppliers to load or empty state to appear');
+    }
+
+    // Debug: Check what's actually on the page
+    const pageContent = await page.locator('body').innerHTML();
+    console.log('Page content length:', pageContent.length);
+    const deleteButtons = await page.locator('a:has-text("delete")').all();
+    console.log('Found delete buttons:', deleteButtons.length);
+    const suppliers = await page.locator('.Form').all();
+    console.log('Found Form elements:', suppliers.length);
+
     // Delete any existing suppliers
     let deleteCount = 0;
-    while (((await page.locator('a:has-text("delete")').all()).length) > 0 && deleteCount < 10) {
+    while (((await page.locator('a:has-text("delete")').all()).length) > 0) {
       console.log('Found existing supplier, deleting...');
-      await page.locator('a:has-text("delete")').first().click();
       
-      // Accept the confirmation dialog
-      page.on('dialog', dialog => dialog.accept());
+      // Set up dialog handler BEFORE clicking
+      const dialogPromise = new Promise<void>((resolve) => {
+        const handler = (dialog) => {
+          dialog.accept();
+          page.off('dialog', handler); // Remove handler after use
+          resolve();
+        };
+        page.on('dialog', handler);
+      });
+
+      await page.locator('a:has-text("delete")').first().click();
+      await dialogPromise; // Wait for dialog to be handled
       
       await page.waitForLoadState('networkidle');
       await new Promise(resolve => setTimeout(resolve, 100));
@@ -25,6 +57,9 @@ test.describe('Supplier Tests', () => {
     }
     
     console.log(`Cleaned up ${deleteCount} existing suppliers`);
+
+    // Verify empty state is shown
+    await expect(page.locator('text=No suppliers found. Create one to get started!')).toBeVisible();
   });
 
   test('should display suppliers page', async ({ page }) => {
