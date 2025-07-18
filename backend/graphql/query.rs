@@ -2,7 +2,7 @@ use async_graphql::{Context, Object, Result};
 use create_rust_app::auth::Auth;
 use create_rust_app::Database;
 use crate::models::todo::{Todo, TodoFilter, PaginationResult as TodoPaginationResult, ConnectionType};
-use crate::models::suppliers::{Suppliers, SuppliersFilter, PaginationResult as SupplierPaginationResult};
+use crate::models::suppliers::{Suppliers, SuppliersFilter, SupplierPaginationResult};
 
 fn get_connection(ctx: &Context<'_>) -> Result<ConnectionType> {
     let db = ctx.data::<Database>()?;
@@ -38,13 +38,14 @@ impl QueryRoot {
             .map_err(|e| async_graphql::Error::new(format!("Database error: {}", e)))
     }
 
-    async fn suppliers(&self, ctx: &Context<'_>, page: Option<i64>, page_size: Option<i64>) -> Result<SupplierPaginationResult<Suppliers>> {
+    async fn suppliers(&self, ctx: &Context<'_>, page: Option<i64>, page_size: Option<i64>) -> Result<SupplierPaginationResult> {
         let mut con = get_connection(ctx)?;
         
         let page = page.unwrap_or(0);
         let page_size = page_size.unwrap_or(10);
         
         Suppliers::paginate(&mut con, page, page_size, SuppliersFilter::default())
+            .map(|result| result.into())
             .map_err(|e| async_graphql::Error::new(format!("Database error: {}", e)))
     }
 

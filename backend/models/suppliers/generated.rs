@@ -39,61 +39,6 @@ pub struct Suppliers {
     pub updated_at: chrono::DateTime<chrono::Utc>,
 }
 
-#[async_graphql::Object]
-impl Suppliers {
-    async fn id(&self) -> async_graphql::ID {
-        async_graphql::ID(self.id.to_string())
-    }
-
-    async fn name(&self) -> &String {
-        &self.name
-    }
-
-    async fn address(&self) -> &String {
-        &self.address
-    }
-
-    async fn city(&self) -> &String {
-        &self.city
-    }
-
-    async fn state(&self) -> &String {
-        &self.state
-    }
-
-    async fn zip_code(&self) -> &String {
-        &self.zip_code
-    }
-
-    async fn country(&self) -> &String {
-        &self.country
-    }
-
-    async fn contact_name(&self) -> &String {
-        &self.contact_name
-    }
-
-    async fn contact_email(&self) -> &String {
-        &self.contact_email
-    }
-
-    async fn contact_phone(&self) -> &String {
-        &self.contact_phone
-    }
-
-    async fn website(&self) -> &Option<String> {
-        &self.website
-    }
-
-    async fn created_at(&self) -> &chrono::DateTime<chrono::Utc> {
-        &self.created_at
-    }
-
-    async fn updated_at(&self) -> &chrono::DateTime<chrono::Utc> {
-        &self.updated_at
-    }
-}
-
 /// Create Struct for a row in table `suppliers` for [`Suppliers`]
 #[tsync::tsync]
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize, diesel::Insertable)]
@@ -154,8 +99,8 @@ pub struct UpdateSuppliers {
 
 /// Result of a `.paginate` function
 #[tsync::tsync]
-#[derive(Debug, serde::Serialize, async_graphql::SimpleObject)]
-pub struct PaginationResult<T: Send + Sync + async_graphql::OutputType> {
+#[derive(Debug, serde::Serialize)]
+pub struct PaginationResult<T> {
     /// Resulting items that are from the current page
     pub items: Vec<T>,
     /// The count of total items there are

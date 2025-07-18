@@ -14,6 +14,7 @@ import './App.css'
 import { Home } from './containers/Home'
 import { Todos } from './containers/Todo'
 import { TodoGraphQLRelay } from './containers/TodoGraphQLRelay'
+import { SupplierList } from './containers/SupplierList'
 import { Files } from './containers/Files'
 import { Route, useNavigate, Routes } from 'react-router-dom'
 
@@ -35,6 +36,7 @@ const App = () => {
             <a className="NavButton" onClick={() => navigate('/')}>Home</a>
             <a className="NavButton" onClick={() => navigate('/todos')}>Todos (REST)</a>
             <a className="NavButton" onClick={() => navigate('/todos-relay')}>Todos (Relay)</a>
+            <a className="NavButton" onClick={() => navigate('/suppliers')}>Suppliers</a>
           <a className="NavButton" onClick={() => navigate('/files')}>Files</a>
             {/* CRA: left-aligned nav buttons */}
             <a className="NavButton" onClick={() => navigate('/account')}>Account</a>
@@ -68,6 +70,11 @@ const App = () => {
             <Route path="/todos-relay" element={
               <Suspense fallback={<div>Loading Relay todos...</div>}>
                 <TodoGraphQLRelay />
+              </Suspense>
+            } />
+            <Route path="/suppliers" element={
+              <Suspense fallback={<div>Loading suppliers...</div>}>
+                <SupplierList />
               </Suspense>
             } />
             {/* CRA: routes */}
