@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { graphql, usePreloadedQuery, useMutation, useQueryLoader } from 'react-relay';
 import type { SupplierListQuery } from '../__generated__/SupplierListQuery.graphql.ts';
 
@@ -57,6 +57,27 @@ const deleteSupplierMutation = graphql`
   }
 `;
 
+// Define the bulk import suppliers mutation
+const importSuppliersMutation = graphql`
+  mutation SupplierListImportMutation($suppliers: [CreateSupplierInput!]!) {
+    importSuppliers(suppliers: $suppliers) {
+      id
+      name
+      address
+      city
+      state
+      zipCode
+      country
+      contactName
+      contactEmail
+      contactPhone
+      website
+      createdAt
+      updatedAt
+    }
+  }
+`;
+
 interface Supplier {
   id: string;
   name: string;
@@ -95,6 +116,8 @@ const SupplierListContent = ({
   loadQuery: (variables: { page: number; pageSize: number }, options?: { fetchPolicy?: string }) => void;
 }) => {
   const [showCreateForm, setShowCreateForm] = useState<boolean>(false);
+  const [isImportPending, setIsImportPending] = useState<boolean>(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [createForm, setCreateForm] = useState<CreateSupplierInput>({
     name: '',
     address: '',
@@ -112,6 +135,7 @@ const SupplierListContent = ({
 
   const [createSupplier, isCreatePending] = useMutation(createSupplierMutation);
   const [deleteSupplier, isDeletePending] = useMutation(deleteSupplierMutation);
+  const [importSuppliers] = useMutation(importSuppliersMutation);
 
   const suppliers = data.suppliers?.items || [];
   const totalItems = data.suppliers?.totalItems || 0;
@@ -188,6 +212,149 @@ const SupplierListContent = ({
     });
   };
 
+  const parseCSV = (csvText: string): CreateSupplierInput[] => {
+    const lines = csvText.trim().split('\n');
+    if (lines.length < 2) {
+      throw new Error('CSV must have header row and at least one data row');
+    }
+
+    const headers = lines[0].split(',').map(h => h.replace(/"/g, '').trim());
+    const suppliers: CreateSupplierInput[] = [];
+
+    for (let i = 1; i < lines.length; i++) {
+      const line = lines[i];
+      if (line.trim() === '') continue;
+
+      // Simple CSV parsing (handles quoted fields)
+      const values: string[] = [];
+      let currentValue = '';
+      let inQuotes = false;
+      
+      for (let j = 0; j < line.length; j++) {
+        const char = line[j];
+        if (char === '"') {
+          inQuotes = !inQuotes;
+        } else if (char === ',' && !inQuotes) {
+          values.push(currentValue.trim());
+          currentValue = '';
+        } else {
+          currentValue += char;
+        }
+      }
+      values.push(currentValue.trim()); // Push the last value
+
+      const supplier: CreateSupplierInput = {
+        name: '',
+        address: '',
+        city: '',
+        state: '',
+        zipCode: '',
+        country: '',
+        contactName: '',
+        contactEmail: '',
+        contactPhone: '',
+        website: ''
+      };
+
+      // Map CSV columns to supplier fields
+      headers.forEach((header, index) => {
+        const value = values[index] || '';
+        switch (header.toLowerCase()) {
+          case 'name':
+            supplier.name = value;
+            break;
+          case 'address':
+            supplier.address = value;
+            break;
+          case 'city':
+            supplier.city = value;
+            break;
+          case 'state':
+            supplier.state = value;
+            break;
+          case 'zipcode':
+          case 'zip_code':
+            supplier.zipCode = value;
+            break;
+          case 'country':
+            supplier.country = value;
+            break;
+          case 'contactname':
+          case 'contact_name':
+            supplier.contactName = value;
+            break;
+          case 'contactemail':
+          case 'contact_email':
+            supplier.contactEmail = value;
+            break;
+          case 'contactphone':
+          case 'contact_phone':
+            supplier.contactPhone = value;
+            break;
+          case 'website':
+            supplier.website = value || undefined;
+            break;
+        }
+      });
+
+      // Validate required fields
+      if (supplier.name && supplier.contactEmail) {
+        suppliers.push(supplier);
+      }
+    }
+
+    return suppliers;
+  };
+
+  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    if (!file.name.toLowerCase().endsWith('.csv')) {
+      alert('Please select a CSV file');
+      return;
+    }
+
+    setIsImportPending(true);
+
+    try {
+      const text = await file.text();
+      const suppliersData = parseCSV(text);
+
+      if (suppliersData.length === 0) {
+        alert('No valid supplier data found in CSV file');
+        setIsImportPending(false);
+        return;
+      }
+
+      importSuppliers({
+        variables: { suppliers: suppliersData },
+        onCompleted: (response) => {
+          alert(`Successfully imported ${response.importSuppliers?.length || 0} suppliers`);
+          setIsImportPending(false);
+          // Clear the file input
+          if (fileInputRef.current) {
+            fileInputRef.current.value = '';
+          }
+          // Refresh the list
+          loadQuery(
+            { page: 0, pageSize: 10 },
+            { fetchPolicy: 'network-only' }
+          );
+        },
+        onError: (error) => {
+          console.error('Error importing suppliers:', error);
+          alert('Error importing suppliers. Please check the file format and try again.');
+          setIsImportPending(false);
+        }
+      });
+    } catch (error) {
+      console.error('Error parsing CSV:', error);
+      alert('Error parsing CSV file. Please check the file format.');
+      setIsImportPending(false);
+    }
+  };
+
   return (
     <div style={{ display: 'flex', flexFlow: 'column', textAlign: 'left' }}>
       <h1>Suppliers</h1>
@@ -196,9 +363,23 @@ const SupplierListContent = ({
         <button 
           onClick={() => setShowCreateForm(true)}
           disabled={showCreateForm}
-          style={{ marginBottom: '20px' }}
+          style={{ marginBottom: '20px', marginRight: '10px' }}
         >
           Add New Supplier
+        </button>
+        <input
+          type="file"
+          accept=".csv"
+          onChange={handleFileUpload}
+          style={{ display: 'none' }}
+          ref={fileInputRef}
+        />
+        <button 
+          onClick={() => fileInputRef.current?.click()}
+          disabled={isImportPending}
+          style={{ marginBottom: '20px' }}
+        >
+          {isImportPending ? 'Importing...' : 'Import CSV'}
         </button>
       </div>
 

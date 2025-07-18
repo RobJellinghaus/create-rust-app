@@ -329,4 +329,100 @@ test.describe('Supplier Tests', () => {
     await expect(page.locator('text=Page 1 of 1')).toBeVisible();
   });
 
+  test('should upload and import CSV file successfully', async ({ page }) => {
+    await page.click('a:has-text("Suppliers")');
+    
+    // Verify we start with empty state
+    await expect(page.locator('text=No suppliers found. Create one to get started!')).toBeVisible();
+    
+    // Create a small test CSV file
+    const csvContent = `name,address,city,state,zipCode,country,contactName,contactEmail,contactPhone,website
+"Test Corp","123 Test St","Test City","CA","12345","USA","John Test","john@test.com","555-1234","https://test.com"
+"Another Corp","456 Another Ave","Another City","NY","67890","USA","Jane Another","jane@another.com","555-5678","https://another.com"`;
+    
+    // Create a File object for the CSV
+    const file = new File([csvContent], 'test-suppliers.csv', { type: 'text/csv' });
+    
+    // Find the hidden file input and set the file
+    const fileInput = page.locator('input[type="file"][accept=".csv"]');
+    await fileInput.setInputFiles({
+      name: 'test-suppliers.csv',
+      mimeType: 'text/csv',
+      buffer: Buffer.from(csvContent)
+    });
+    
+    // Set up dialog handler to accept the success message
+    page.on('dialog', dialog => {
+      expect(dialog.message()).toContain('Successfully imported 2 suppliers');
+      dialog.accept();
+    });
+    
+    // Click the import button to trigger the upload
+    await page.click('button:has-text("Import CSV")');
+    
+    // Wait for the import to complete and page to update
+    await page.waitForLoadState('networkidle');
+    
+    // Verify suppliers were imported
+    await expect(page.locator('text=Test Corp')).toBeVisible();
+    await expect(page.locator('text=Another Corp')).toBeVisible();
+    await expect(page.locator('text=john@test.com')).toBeVisible();
+    await expect(page.locator('text=jane@another.com')).toBeVisible();
+    
+    // Verify empty state is no longer visible
+    await expect(page.locator('text=No suppliers found. Create one to get started!')).not.toBeVisible();
+    
+    // Verify we have supplier rows with proper data
+    await expect(page.locator('text=Contact: John Test (john@test.com)')).toBeVisible();
+    await expect(page.locator('text=Address: 123 Test St, Test City, CA 12345, USA')).toBeVisible();
+    await expect(page.locator('text=Contact: Jane Another (jane@another.com)')).toBeVisible();
+    await expect(page.locator('text=Address: 456 Another Ave, Another City, NY 67890, USA')).toBeVisible();
+  });
+
+  test('should handle invalid CSV file gracefully', async ({ page }) => {
+    await page.click('a:has-text("Suppliers")');
+    
+    // Create an invalid CSV file (missing required headers)
+    const invalidCsvContent = `invalid,headers,here
+"Some","Data","Here"`;
+    
+    // Find the hidden file input and set the invalid file
+    const fileInput = page.locator('input[type="file"][accept=".csv"]');
+    await fileInput.setInputFiles({
+      name: 'invalid.csv',
+      mimeType: 'text/csv',
+      buffer: Buffer.from(invalidCsvContent)
+    });
+    
+    // Set up dialog handler to catch the error message
+    page.on('dialog', dialog => {
+      expect(dialog.message()).toContain('No valid supplier data found in CSV file');
+      dialog.accept();
+    });
+    
+    // Click the import button
+    await page.click('button:has-text("Import CSV")');
+    
+    // Wait for the error handling
+    await page.waitForLoadState('networkidle');
+    
+    // Verify empty state is still visible (no suppliers were imported)
+    await expect(page.locator('text=No suppliers found. Create one to get started!')).toBeVisible();
+  });
+
+  test('should show import button and accept CSV files only', async ({ page }) => {
+    await page.click('a:has-text("Suppliers")');
+    
+    // Verify import button is visible and enabled
+    await expect(page.locator('button:has-text("Import CSV")')).toBeVisible();
+    await expect(page.locator('button:has-text("Import CSV")')).toBeEnabled();
+    
+    // Verify file input accepts only CSV files
+    const fileInput = page.locator('input[type="file"][accept=".csv"]');
+    await expect(fileInput).toHaveAttribute('accept', '.csv');
+    
+    // Verify file input is hidden
+    await expect(fileInput).toHaveCSS('display', 'none');
+  });
+
 });

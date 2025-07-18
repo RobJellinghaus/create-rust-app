@@ -124,4 +124,34 @@ impl MutationRoot {
             .map(|count| count > 0)
             .map_err(|e| async_graphql::Error::new(format!("Database error: {}", e)))
     }
+
+    async fn import_suppliers(&self, ctx: &Context<'_>, suppliers: Vec<CreateSupplierInput>) -> Result<Vec<Suppliers>> {
+        let mut con = get_connection(ctx)?;
+        let mut created_suppliers = Vec::new();
+        
+        for supplier_input in suppliers {
+            let new_supplier = CreateSuppliers {
+                name: supplier_input.name,
+                address: supplier_input.address,
+                city: supplier_input.city,
+                state: supplier_input.state,
+                zip_code: supplier_input.zip_code,
+                country: supplier_input.country,
+                contact_name: supplier_input.contact_name,
+                contact_email: supplier_input.contact_email,
+                contact_phone: supplier_input.contact_phone,
+                website: supplier_input.website,
+            };
+            
+            match Suppliers::create(&mut con, &new_supplier) {
+                Ok(supplier) => created_suppliers.push(supplier),
+                Err(e) => {
+                    // Log the error but continue with other suppliers
+                    eprintln!("Error creating supplier {}: {}", new_supplier.name, e);
+                }
+            }
+        }
+        
+        Ok(created_suppliers)
+    }
 }

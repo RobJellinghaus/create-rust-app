@@ -80,6 +80,7 @@ type Mutation {
   createSupplier(input: CreateSupplierInput!): Supplier!
   updateSupplier(id: ID!, input: UpdateSupplierInput!): Supplier!
   deleteSupplier(id: ID!): Boolean!
+  importSuppliers(suppliers: [CreateSupplierInput!]!): [Supplier!]!
 }
 
 schema {
