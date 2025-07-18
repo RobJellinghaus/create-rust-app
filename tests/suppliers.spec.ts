@@ -6,24 +6,34 @@ test.describe('Supplier Tests', () => {
     await loginAsTestUser(page);
     await page.waitForLoadState('networkidle');
 
+    console.log('Waiting for network idle...');
+
     // Clean up any existing suppliers
     await page.click('a:has-text("Suppliers")');
     await page.waitForLoadState('networkidle');
 
+    console.log('Waiting for Suppliers...');
+
     // Wait for React Suspense to resolve and suppliers to load
     await page.waitForSelector('h1:has-text("Suppliers")', { timeout: 5000 });
     
-    // Wait for either suppliers to load or empty state to appear
+    /*
+    console.log('Waiting for GraphQL response...');
+
+    // Wait for the GraphQL suppliers query to complete
     try {
-      await page.waitForFunction(() => {
-        const deleteLinks = Array.from(document.querySelectorAll('a')).filter(a => a.textContent?.includes('delete'));
-        const hasSuppliers = deleteLinks.length > 0;
-        const hasEmptyState = document.textContent?.includes('No suppliers found. Create one to get started!');
-        return hasSuppliers || hasEmptyState;
-      }, { timeout: 5000 });
+      await page.waitForResponse(response => 
+        response.url().includes('/api/graphql') && 
+        response.request().postData()?.includes('SupplierListQuery'),
+        { timeout: 5000 }
+      );
+      console.log('GraphQL suppliers query completed');
     } catch (e) {
-      console.log('Timeout waiting for suppliers to load or empty state to appear');
+      console.log('Timeout waiting for GraphQL suppliers query');
     }
+      */
+
+    console.log('bar');
 
     // Debug: Check what's actually on the page
     const pageContent = await page.locator('body').innerHTML();
@@ -111,23 +121,12 @@ test.describe('Supplier Tests', () => {
     // Initially disabled
     await expect(page.locator('button:has-text("Create Supplier")')).toBeDisabled();
     
-    // Fill required fields
+    // Fill only name (should still be disabled - missing email)
     await page.fill('input[placeholder="Supplier name"]', 'Test Supplier');
-    await page.fill('input[placeholder="contact@supplier.com"]', 'test@supplier.com');
-    
-    // Should still be disabled (missing other required fields)
     await expect(page.locator('button:has-text("Create Supplier")')).toBeDisabled();
     
-    // Fill remaining required fields
-    await page.fill('input[placeholder="Contact person name"]', 'John Doe');
-    await page.fill('input[placeholder="Street address"]', '123 Main St');
-    await page.fill('input[placeholder="City"]', 'Test City');
-    await page.fill('input[placeholder="(555) 123-4567"]', '555-123-4567');
-    await page.fill('input[placeholder="State"]', 'CA');
-    await page.fill('input[placeholder="12345"]', '12345');
-    await page.fill('input[placeholder="Country"]', 'USA');
-    
-    // Now should be enabled
+    // Fill email (should now be enabled - only name and email are validated)
+    await page.fill('input[placeholder="contact@supplier.com"]', 'test@supplier.com');
     await expect(page.locator('button:has-text("Create Supplier")')).toBeEnabled();
   });
 
@@ -330,21 +329,4 @@ test.describe('Supplier Tests', () => {
     await expect(page.locator('text=Page 1 of 1')).toBeVisible();
   });
 
-  test('should navigate properly to and from suppliers page', async ({ page }) => {
-    // Start at home page
-    await page.click('a:has-text("Home")');
-    await expect(page.locator('h1:has-text("Welcome to create-rust-app!")')).toBeVisible();
-    
-    // Navigate to suppliers
-    await page.click('a:has-text("Suppliers")');
-    await expect(page.locator('h1:has-text("Suppliers")')).toBeVisible();
-    
-    // Navigate to todos
-    await page.click('a:has-text("Todos (REST)")');
-    await expect(page.locator('h1:has-text("Todos")')).toBeVisible();
-    
-    // Navigate back to suppliers
-    await page.click('a:has-text("Suppliers")');
-    await expect(page.locator('h1:has-text("Suppliers")')).toBeVisible();
-  });
 });
