@@ -356,19 +356,10 @@ const SupplierListContent = ({
   };
 
   return (
-    <div style={{ 
-      display: 'flex', 
-      flexFlow: 'column', 
-      textAlign: 'left', 
-      maxWidth: 'none', 
-      margin: '0',
-      padding: '24px',
-      width: '100%',
-      boxSizing: 'border-box'
-    }}>
-      <h1 style={{ textAlign: 'left', margin: '0 0 24px 0' }}>Suppliers</h1>
+    <div style={{ display: 'flex', flexFlow: 'column' }}>
+      <h1>Suppliers</h1>
       
-      <div className="Form" style={{ maxWidth: 'none', margin: '0 0 24px 0', textAlign: 'left' }}>
+      <div className="Form">
         <button 
           onClick={() => setShowCreateForm(true)}
           disabled={showCreateForm}
@@ -393,7 +384,7 @@ const SupplierListContent = ({
       </div>
 
       {showCreateForm && (
-        <div className="Form" style={{ marginBottom: '20px', padding: '20px', border: '1px solid #ccc', maxWidth: 'none', margin: '0 0 20px 0', textAlign: 'left' }}>
+        <div className="Form" style={{ marginBottom: '20px', padding: '20px', border: '1px solid #ccc' }}>
           <h3>Create New Supplier</h3>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
             <div>
@@ -509,13 +500,13 @@ const SupplierListContent = ({
       {totalItems === 0 && !showCreateForm && "No suppliers found. Create one to get started!"}
       
       {suppliers.map((supplier: Supplier) => (
-        <div key={supplier.id} className="Form" style={{ marginBottom: '10px', maxWidth: 'none', margin: '0 0 10px 0', textAlign: 'left' }}>
+        <div key={supplier.id} className="Form" style={{ marginBottom: '10px' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-            <div style={{ flex: 1, textAlign: 'left' }}>
-              <h4 style={{ margin: '0 0 5px 0', textAlign: 'left' }}>
+            <div style={{ flex: 1 }}>
+              <h4 style={{ margin: '0 0 5px 0' }}>
                 #{supplier.id} {supplier.name}
               </h4>
-              <div style={{ fontSize: '0.9em', color: '#666', textAlign: 'left' }}>
+              <div style={{ fontSize: '0.9em', color: '#666' }}>
                 <div><strong>Contact:</strong> {supplier.contactName} ({supplier.contactEmail})</div>
                 <div><strong>Address:</strong> {supplier.address}, {supplier.city}, {supplier.state} {supplier.zipCode}, {supplier.country}</div>
                 <div><strong>Phone:</strong> {supplier.contactPhone}</div>
@@ -553,7 +544,7 @@ const SupplierListContent = ({
         </div>
       ))}
       
-      <div className="Form" style={{ maxWidth: 'none', margin: '0', textAlign: 'left' }}>
+      <div className="Form">
         <div style={{ display: 'flex' }}>
           <button disabled={true}>{`<< (Coming Soon)`}</button>
           <span style={{ flex: 1, textAlign: 'center' }}>

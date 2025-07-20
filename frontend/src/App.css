@@ -270,6 +270,22 @@ code {
   font-weight: 500;
 }
 
+/* Full-width layout for specific pages */
+.App.full-width-layout {
+  text-align: left;
+}
+
+.App.full-width-layout > div[style*="maxWidth"] {
+  max-width: none !important;
+  margin: 0 !important;
+  padding: 24px;
+}
+
+.App.full-width-layout .Form {
+  max-width: none;
+  margin: 0 0 24px 0;
+}
+
 /* Responsive improvements */
 @media (max-width: 768px) {
   .App-nav-header {
