@@ -318,12 +318,12 @@ test.describe('Supplier Tests', () => {
     await expect(page.locator('text=Edit Test Corp')).toBeVisible();
   });
 
-  test('should show disabled pagination controls', async ({ page }) => {
+  test('should show functional pagination controls', async ({ page }) => {
     await page.click('a:has-text("Suppliers")');
     
-    // Check that pagination buttons are disabled
-    await expect(page.locator('button:has-text("<< (Coming Soon)")')).toBeDisabled();
-    await expect(page.locator('button:has-text(">> (Coming Soon)")')).toBeDisabled();
+    // Check that pagination buttons are present and Previous is disabled on first page
+    await expect(page.locator('button:has-text("Previous")')).toBeDisabled();
+    await expect(page.locator('button:has-text("Next")')).toBeVisible();
     
     // Check page display
     await expect(page.locator('text=Page 1 of 1')).toBeVisible();
@@ -423,6 +423,27 @@ test.describe('Supplier Tests', () => {
     
     // Verify file input is hidden
     await expect(fileInput).toHaveCSS('display', 'none');
+  });
+
+  test('should show working pagination controls', async ({ page }) => {
+    await page.click('a:has-text("Suppliers")');
+    
+    // Verify pagination controls are visible
+    await expect(page.locator('button:has-text("Previous")')).toBeVisible();
+    await expect(page.locator('button:has-text("Next")')).toBeVisible();
+    
+    // On first page, Previous should be disabled
+    await expect(page.locator('button:has-text("Previous")')).toBeDisabled();
+    
+    // Check page display shows current page
+    await expect(page.locator('text=Page 1 of')).toBeVisible();
+    
+    // If there are suppliers, verify the item count display
+    const supplierCount = await page.locator('a:has-text("delete")').count();
+    if (supplierCount > 0) {
+      await expect(page.locator('text=Showing')).toBeVisible();
+      await expect(page.locator('text=suppliers')).toBeVisible();
+    }
   });
 
 });

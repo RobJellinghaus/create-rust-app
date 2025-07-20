@@ -117,6 +117,8 @@ const SupplierListContent = ({
 }) => {
   const [showCreateForm, setShowCreateForm] = useState<boolean>(false);
   const [isImportPending, setIsImportPending] = useState<boolean>(false);
+  const [currentPage, setCurrentPage] = useState<number>(0);
+  const [pageSize] = useState<number>(10);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [createForm, setCreateForm] = useState<CreateSupplierInput>({
     name: '',
@@ -139,6 +141,8 @@ const SupplierListContent = ({
 
   const suppliers = data.suppliers?.items || [];
   const totalItems = data.suppliers?.totalItems || 0;
+  const numPages = data.suppliers?.numPages || 1;
+  const currentPageFromData = data.suppliers?.page || 0;
 
   const handleCreateSupplier = () => {
     if (createForm.name.trim() && createForm.contactEmail.trim()) {
@@ -163,9 +167,10 @@ const SupplierListContent = ({
             website: ''
           });
           setShowCreateForm(false);
-          // Force network fetch to bypass cache
+          // Force network fetch to bypass cache and reset to first page
+          setCurrentPage(0);
           loadQuery(
-            { page: 0, pageSize: 10 },
+            { page: 0, pageSize },
             { fetchPolicy: 'network-only' }
           );
         },
@@ -183,8 +188,17 @@ const SupplierListContent = ({
         onCompleted: (response) => {
           if (response.deleteSupplier) {
             // Force network fetch to bypass cache and show updated list
+            // Check if current page would be empty after deletion, go to previous page
+            const remainingItems = totalItems - 1;
+            const maxPage = Math.max(0, Math.ceil(remainingItems / pageSize) - 1);
+            const targetPage = Math.min(currentPage, maxPage);
+            
+            if (targetPage !== currentPage) {
+              setCurrentPage(targetPage);
+            }
+            
             loadQuery(
-              { page: 0, pageSize: 10 },
+              { page: targetPage, pageSize },
               { fetchPolicy: 'network-only' }
             );
           }
@@ -336,9 +350,10 @@ const SupplierListContent = ({
           if (fileInputRef.current) {
             fileInputRef.current.value = '';
           }
-          // Refresh the list
+          // Refresh the list and reset to first page
+          setCurrentPage(0);
           loadQuery(
-            { page: 0, pageSize: 10 },
+            { page: 0, pageSize },
             { fetchPolicy: 'network-only' }
           );
         },
@@ -352,6 +367,28 @@ const SupplierListContent = ({
       console.error('Error parsing CSV:', error);
       alert('Error parsing CSV file. Please check the file format.');
       setIsImportPending(false);
+    }
+  };
+
+  const handlePreviousPage = () => {
+    if (currentPage > 0) {
+      const newPage = currentPage - 1;
+      setCurrentPage(newPage);
+      loadQuery(
+        { page: newPage, pageSize },
+        { fetchPolicy: 'network-only' }
+      );
+    }
+  };
+
+  const handleNextPage = () => {
+    if (currentPage < numPages - 1) {
+      const newPage = currentPage + 1;
+      setCurrentPage(newPage);
+      loadQuery(
+        { page: newPage, pageSize },
+        { fetchPolicy: 'network-only' }
+      );
     }
   };
 
@@ -545,13 +582,30 @@ const SupplierListContent = ({
       ))}
       
       <div className="Form">
-        <div style={{ display: 'flex' }}>
-          <button disabled={true}>{`<< (Coming Soon)`}</button>
-          <span style={{ flex: 1, textAlign: 'center' }}>
-            Page {(data.suppliers?.page || 0) + 1} of {data.suppliers?.numPages || 1}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+          <button 
+            onClick={handlePreviousPage}
+            disabled={currentPage === 0}
+            style={{ minWidth: '100px' }}
+          >
+            Previous
+          </button>
+          <span style={{ flex: 1, textAlign: 'center', fontWeight: '500' }}>
+            Page {currentPage + 1} of {numPages}
           </span>
-          <button disabled={true}>{`>> (Coming Soon)`}</button>
+          <button 
+            onClick={handleNextPage}
+            disabled={currentPage >= numPages - 1}
+            style={{ minWidth: '100px' }}
+          >
+            Next
+          </button>
         </div>
+        {totalItems > 0 && (
+          <div style={{ textAlign: 'center', fontSize: '14px', color: '#666', marginTop: '8px' }}>
+            Showing {Math.min(currentPage * pageSize + 1, totalItems)} - {Math.min((currentPage + 1) * pageSize, totalItems)} of {totalItems} suppliers
+          </div>
+        )}
       </div>
     </div>
   );
