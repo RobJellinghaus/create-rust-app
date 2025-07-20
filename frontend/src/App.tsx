@@ -48,10 +48,9 @@ const App = () => {
             { !auth.isAuthenticated && <a className="NavButton" onClick={() => navigate('/login')}>Login/Register</a> }
           </div>
         </div>
-        <div style={{ margin: '0 auto', maxWidth: '800px' }}>
           <Routes>
-            <Route path="/" element={<Home />} />
-            <Route path="/todos" element={<Todos />} />
+            <Route path="/" element={<div style={{ margin: '0 auto', maxWidth: '800px' }}><Home /></div>} />
+            <Route path="/todos" element={<div style={{ margin: '0 auto', maxWidth: '800px' }}><Todos /></div>} />
             {/* 
               CRITICAL: Relay components that use useLazyLoadQuery MUST be wrapped in <Suspense>
               
@@ -68,9 +67,11 @@ const App = () => {
               - User sees a proper loading state followed by the actual content
             */}
             <Route path="/todos-relay" element={
-              <Suspense fallback={<div>Loading Relay todos...</div>}>
-                <TodoGraphQLRelay />
-              </Suspense>
+              <div style={{ margin: '0 auto', maxWidth: '800px' }}>
+                <Suspense fallback={<div>Loading Relay todos...</div>}>
+                  <TodoGraphQLRelay />
+                </Suspense>
+              </div>
             } />
             <Route path="/suppliers" element={
               <Suspense fallback={<div>Loading suppliers...</div>}>
@@ -78,18 +79,17 @@ const App = () => {
               </Suspense>
             } />
             {/* CRA: routes */}
-              <Route path="/files" element={<Files />} />
-            <Route path="/login" element={<LoginPage />} />
-              <Route path="/oauth/success" element={<OauthLoginResultPage />} />
-              <Route path="/oauth/error" element={<OauthLoginResultPage />} />
-            <Route path="/recovery" element={<RecoveryPage />} />
-            <Route path="/reset" element={<ResetPage />} />
-            <Route path="/activate" element={<ActivationPage />} />
-            <Route path="/register" element={<RegistrationPage />} />
-            <Route path="/account" element={<AccountPage />} />
+              <Route path="/files" element={<div style={{ margin: '0 auto', maxWidth: '800px' }}><Files /></div>} />
+            <Route path="/login" element={<div style={{ margin: '0 auto', maxWidth: '800px' }}><LoginPage /></div>} />
+              <Route path="/oauth/success" element={<div style={{ margin: '0 auto', maxWidth: '800px' }}><OauthLoginResultPage /></div>} />
+              <Route path="/oauth/error" element={<div style={{ margin: '0 auto', maxWidth: '800px' }}><OauthLoginResultPage /></div>} />
+            <Route path="/recovery" element={<div style={{ margin: '0 auto', maxWidth: '800px' }}><RecoveryPage /></div>} />
+            <Route path="/reset" element={<div style={{ margin: '0 auto', maxWidth: '800px' }}><ResetPage /></div>} />
+            <Route path="/activate" element={<div style={{ margin: '0 auto', maxWidth: '800px' }}><ActivationPage /></div>} />
+            <Route path="/register" element={<div style={{ margin: '0 auto', maxWidth: '800px' }}><RegistrationPage /></div>} />
+            <Route path="/account" element={<div style={{ margin: '0 auto', maxWidth: '800px' }}><AccountPage /></div>} />
       
           </Routes>
-        </div>
       </div>
       </RelayEnvironmentContext.Provider>
     </RelayEnvironmentProvider>
