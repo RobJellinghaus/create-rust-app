@@ -1,0 +1,181 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 800" width="1200" height="800">
+  <defs>
+    <style>
+      .title { font-family: Arial, sans-serif; font-size: 20px; font-weight: bold; fill: #333; }
+      .section-title { font-family: Arial, sans-serif; font-size: 16px; font-weight: bold; fill: #444; }
+      .component { font-family: Arial, sans-serif; font-size: 12px; fill: #555; }
+      .tech-label { font-family: Arial, sans-serif; font-size: 10px; fill: #666; font-style: italic; }
+      .client-bg { fill: #e3f2fd; stroke: #1976d2; stroke-width: 2; }
+      .server-bg { fill: #fff3e0; stroke: #f57c00; stroke-width: 2; }
+      .database-bg { fill: #f3e5f5; stroke: #7b1fa2; stroke-width: 2; }
+      .component-box { fill: #ffffff; stroke: #999; stroke-width: 1; rx: 5; }
+      .data-flow { stroke: #666; stroke-width: 2; fill: none; marker-end: url(#arrowhead); }
+      .tech-box { fill: #f5f5f5; stroke: #999; stroke-width: 1; rx: 3; }
+    </style>
+    <marker id="arrowhead" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#666" />
+    </marker>
+  </defs>
+
+  <!-- Title -->
+  <text x="600" y="30" text-anchor="middle" class="title">Procuretoy: Full-Stack Rust Application Architecture</text>
+
+  <!-- Client Side -->
+  <rect x="50" y="60" width="500" height="680" class="client-bg" />
+  <text x="300" y="85" text-anchor="middle" class="section-title">CLIENT SIDE (Browser)</text>
+
+  <!-- React App -->
+  <rect x="80" y="110" width="440" height="60" class="component-box" />
+  <text x="300" y="130" text-anchor="middle" class="section-title">React Application</text>
+  <text x="300" y="150" text-anchor="middle" class="tech-label">TypeScript + React Router + Vite</text>
+
+  <!-- Navigation -->
+  <rect x="100" y="190" width="180" height="40" class="tech-box" />
+  <text x="190" y="215" text-anchor="middle" class="component">Navigation</text>
+
+  <rect x="300" y="190" width="200" height="40" class="tech-box" />
+  <text x="400" y="215" text-anchor="middle" class="component">Authentication</text>
+
+  <!-- Main Components -->
+  <rect x="100" y="250" width="120" height="80" class="component-box" />
+  <text x="160" y="275" text-anchor="middle" class="component">Home</text>
+  <text x="160" y="295" text-anchor="middle" class="component">Todos (REST)</text>
+  <text x="160" y="315" text-anchor="middle" class="tech-label">Axios HTTP</text>
+
+  <rect x="240" y="250" width="120" height="80" class="component-box" />
+  <text x="300" y="275" text-anchor="middle" class="component">Todos (Relay)</text>
+  <text x="300" y="295" text-anchor="middle" class="tech-label">GraphQL + Relay</text>
+  <text x="300" y="315" text-anchor="middle" class="tech-label">Suspense</text>
+
+  <rect x="380" y="250" width="120" height="80" class="component-box" />
+  <text x="440" y="275" text-anchor="middle" class="component">Suppliers</text>
+  <text x="440" y="295" text-anchor="middle" class="tech-label">GraphQL + Relay</text>
+  <text x="440" y="315" text-anchor="middle" class="tech-label">CSV Import</text>
+
+  <!-- Relay Environment -->
+  <rect x="100" y="350" width="180" height="60" class="component-box" />
+  <text x="190" y="375" text-anchor="middle" class="component">Relay Environment</text>
+  <text x="190" y="395" text-anchor="middle" class="tech-label">GraphQL Client</text>
+
+  <!-- CSV Processing -->
+  <rect x="300" y="350" width="180" height="60" class="component-box" />
+  <text x="390" y="375" text-anchor="middle" class="component">CSV Parser</text>
+  <text x="390" y="395" text-anchor="middle" class="tech-label">File API + Validation</text>
+
+  <!-- Build Tools -->
+  <rect x="100" y="430" width="400" height="40" class="tech-box" />
+  <text x="300" y="455" text-anchor="middle" class="component">Build Tools: Vite + Relay Compiler + TypeScript</text>
+
+  <!-- Testing -->
+  <rect x="100" y="490" width="400" height="60" class="component-box" />
+  <text x="300" y="515" text-anchor="middle" class="component">Playwright End-to-End Tests</text>
+  <text x="300" y="535" text-anchor="middle" class="tech-label">Automated UI Testing + Authentication</text>
+
+  <!-- Static Assets -->
+  <rect x="100" y="570" width="180" height="40" class="tech-box" />
+  <text x="190" y="595" text-anchor="middle" class="component">Static Assets</text>
+
+  <rect x="300" y="570" width="180" height="40" class="tech-box" />
+  <text x="390" y="595" text-anchor="middle" class="component">Development Server</text>
+
+  <!-- Dev Server Info -->
+  <rect x="100" y="630" width="400" height="60" class="tech-box" />
+  <text x="300" y="650" text-anchor="middle" class="component">Development: http://localhost:21012</text>
+  <text x="300" y="670" text-anchor="middle" class="component">Production: Served by Rust backend</text>
+
+  <!-- Server Side -->
+  <rect x="650" y="60" width="500" height="680" class="server-bg" />
+  <text x="900" y="85" text-anchor="middle" class="section-title">SERVER SIDE (Rust)</text>
+
+  <!-- Actix Web Framework -->
+  <rect x="680" y="110" width="440" height="60" class="component-box" />
+  <text x="900" y="130" text-anchor="middle" class="section-title">Actix-web HTTP Server</text>
+  <text x="900" y="150" text-anchor="middle" class="tech-label">Port 3000 + Static File Serving</text>
+
+  <!-- API Endpoints -->
+  <rect x="700" y="190" width="180" height="80" class="component-box" />
+  <text x="790" y="215" text-anchor="middle" class="component">REST APIs</text>
+  <text x="790" y="235" text-anchor="middle" class="tech-label">/api/todos</text>
+  <text x="790" y="255" text-anchor="middle" class="tech-label">JSON responses</text>
+
+  <rect x="900" y="190" width="200" height="80" class="component-box" />
+  <text x="1000" y="215" text-anchor="middle" class="component">GraphQL API</text>
+  <text x="1000" y="235" text-anchor="middle" class="tech-label">/api/graphql</text>
+  <text x="1000" y="255" text-anchor="middle" class="tech-label">async-graphql</text>
+
+  <!-- Business Logic -->
+  <rect x="700" y="290" width="180" height="80" class="component-box" />
+  <text x="790" y="315" text-anchor="middle" class="component">Todo Services</text>
+  <text x="790" y="335" text-anchor="middle" class="tech-label">CRUD Operations</text>
+  <text x="790" y="355" text-anchor="middle" class="tech-label">Business Logic</text>
+
+  <rect x="900" y="290" width="200" height="80" class="component-box" />
+  <text x="1000" y="315" text-anchor="middle" class="component">Supplier Services</text>
+  <text x="1000" y="335" text-anchor="middle" class="tech-label">CRUD + Bulk Import</text>
+  <text x="1000" y="355" text-anchor="middle" class="tech-label">CSV Processing</text>
+
+  <!-- Database Layer -->
+  <rect x="700" y="390" width="400" height="80" class="component-box" />
+  <text x="900" y="415" text-anchor="middle" class="component">Database Layer (Diesel ORM)</text>
+  <text x="900" y="435" text-anchor="middle" class="tech-label">Models + Migrations + Connection Pool</text>
+  <text x="900" y="455" text-anchor="middle" class="tech-label">Auto-generated by dsync</text>
+
+  <!-- Code Generation -->
+  <rect x="700" y="490" width="180" height="60" class="component-box" />
+  <text x="790" y="515" text-anchor="middle" class="component">dsync</text>
+  <text x="790" y="535" text-anchor="middle" class="tech-label">Code Generator</text>
+
+  <rect x="900" y="490" width="200" height="60" class="component-box" />
+  <text x="1000" y="515" text-anchor="middle" class="component">Manual GraphQL</text>
+  <text x="1000" y="535" text-anchor="middle" class="tech-label">Custom Implementations</text>
+
+  <!-- Authentication -->
+  <rect x="700" y="570" width="400" height="60" class="component-box" />
+  <text x="900" y="595" text-anchor="middle" class="component">Authentication &amp; Authorization</text>
+  <text x="900" y="615" text-anchor="middle" class="tech-label">JWT + Session Management + Protected Routes</text>
+
+  <!-- Background Tasks -->
+  <rect x="700" y="650" width="400" height="40" class="tech-box" />
+  <text x="900" y="675" text-anchor="middle" class="component">Background Tasks (Fang Queue)</text>
+
+  <!-- Database -->
+  <rect x="400" y="780" width="400" height="180" class="database-bg" />
+  <text x="600" y="805" text-anchor="middle" class="section-title">DATABASE (PostgreSQL)</text>
+
+  <rect x="430" y="820" width="150" height="60" class="component-box" />
+  <text x="505" y="845" text-anchor="middle" class="component">todo table</text>
+  <text x="505" y="865" text-anchor="middle" class="tech-label">id, text, timestamps</text>
+
+  <rect x="620" y="820" width="150" height="60" class="component-box" />
+  <text x="695" y="845" text-anchor="middle" class="component">suppliers table</text>
+  <text x="695" y="865" text-anchor="middle" class="tech-label">contact info, address</text>
+
+  <rect x="430" y="900" width="150" height="40" class="tech-box" />
+  <text x="505" y="925" text-anchor="middle" class="component">users + auth tables</text>
+
+  <rect x="620" y="900" width="150" height="40" class="tech-box" />
+  <text x="695" y="925" text-anchor="middle" class="component">background jobs</text>
+
+  <!-- Data Flow Arrows -->
+  <!-- Client to Server -->
+  <path d="M 550 300 L 650 300" class="data-flow" />
+  <text x="600" y="295" text-anchor="middle" class="tech-label">HTTP/GraphQL</text>
+
+  <!-- Server to Database -->
+  <path d="M 900 470 L 600 780" class="data-flow" />
+  <text x="750" y="625" text-anchor="middle" class="tech-label">SQL Queries</text>
+
+  <!-- CSV Flow -->
+  <path d="M 440 350 Q 550 400 650 350" class="data-flow" />
+  <text x="550" y="380" text-anchor="middle" class="tech-label">CSV Upload</text>
+
+  <!-- Legend -->
+  <rect x="50" y="750" width="300" height="100" fill="#f9f9f9" stroke="#ccc" stroke-width="1" rx="5" />
+  <text x="200" y="770" text-anchor="middle" class="section-title">Technology Stack</text>
+  <text x="60" y="790" class="tech-label">Frontend: React + TypeScript + Relay + Vite</text>
+  <text x="60" y="810" class="tech-label">Backend: Rust + Actix-web + Diesel + async-graphql</text>
+  <text x="60" y="830" class="tech-label">Database: PostgreSQL + Migrations</text>
+  <text x="60" y="850" class="tech-label">Testing: Playwright E2E + Authentication</text>
+
+</svg>

@@ -1,0 +1,11 @@
+name,address,city,state,zipCode,country,contactName,contactEmail,contactPhone,website
+"Acme Manufacturing Corp","123 Industrial Blvd","Detroit","MI","48201","USA","John Smith","john.smith@acme-mfg.com","555-123-4567","https://acme-manufacturing.com"
+"TechnoGlobal Solutions","456 Tech Park Drive","Austin","TX","78701","USA","Sarah Johnson","sarah.j@technoglobal.com","555-987-6543","https://technoglobal.solutions"
+"Pacific Coast Supplies","789 Harbor Way","Seattle","WA","98101","USA","Mike Chen","mike.chen@paccoast.com","555-456-7890","https://pacificcoastsupplies.com"
+"Mountain View Electronics","321 Silicon Valley Rd","San Jose","CA","95110","USA","Lisa Rodriguez","l.rodriguez@mvelectronics.com","555-234-5678","https://mvelectronics.com"
+"Atlantic Industrial Parts","654 Commerce Street","Boston","MA","02101","USA","David Wilson","david.wilson@atlanticparts.com","555-345-6789","https://atlanticindustrial.com"
+"Midwest Agricultural Supply","987 Farmland Avenue","Chicago","IL","60601","USA","Emma Thompson","emma.t@midwestag.com","555-567-8901","https://midwestag.com"
+"Southern Textiles Inc","147 Cotton Mill Road","Atlanta","GA","30301","USA","Robert Garcia","robert.garcia@southerntextiles.com","555-678-9012","https://southerntextiles.com"
+"Northern Logistics Corp","258 Warehouse District","Minneapolis","MN","55401","USA","Jennifer Lee","jennifer.lee@northernlogistics.com","555-789-0123","https://northernlogistics.com"
+"Western Mining Equipment","369 Mountain Pass Drive","Denver","CO","80201","USA","Christopher Taylor","chris.taylor@westernmining.com","555-890-1234","https://westernmining.com"
+"Eastern Energy Solutions","741 Power Plant Road","Richmond","VA","23219","USA","Amanda Martinez","amanda.martinez@easternenergy.com","555-901-2345","https://easternenergy.com"
