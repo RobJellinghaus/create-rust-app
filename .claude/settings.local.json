@@ -1,0 +1,21 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(cargo:*)",
+      "Bash(npm run build:*)",
+      "Bash(lsof:*)",
+      "Bash(npx playwright test:*)",
+      "Bash(pkill:*)",
+      "Bash(true)",
+      "Bash(PLAYWRIGHT_KEEP_SERVER=true npx playwright test tests/graphql.spec.ts --workers=1)",
+      "Bash(mkdir:*)",
+      "Bash(npm run relay:*)",
+      "Bash(npx tsc:*)",
+      "Bash(npm install:*)",
+      "Bash(ls:*)",
+      "Bash(rg:*)",
+      "Bash(find:*)"
+    ],
+    "deny": []
+  }
+}
