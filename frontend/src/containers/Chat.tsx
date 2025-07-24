@@ -35,7 +35,7 @@ const ChatAPI = {
       try {
         const chunk = JSON.parse(event.data);
         console.log('Parsed chunk:', chunk);
-        if (chunk && chunk.trim()) {
+        if (chunk) {
           console.log('Calling onChunk with:', chunk);
           onChunk(chunk);
         } else {
@@ -122,6 +122,9 @@ export const Chat = () => {
 
     setChatHistory(prev => [...prev, chatMessage])
     setMessage('')
+
+    // Scroll to bottom immediately when message is sent
+    setTimeout(scrollToBottom, 0);
 
     // Start streaming
     eventSourceRef.current = ChatAPI.sendStream(
@@ -284,7 +287,7 @@ export const Chat = () => {
           51%, 100% { opacity: 0; }
         }
       `}</style>
-      <div style={{ display: 'flex', flexFlow: 'column', textAlign: 'left', height: '70vh' }}>
+      <div style={{ display: 'flex', flexFlow: 'column', textAlign: 'left', height: '100vh', padding: '20px', boxSizing: 'border-box' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <h1>Procurement Assistant</h1>
         <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
@@ -313,7 +316,8 @@ export const Chat = () => {
           marginBottom: '20px', 
           border: '1px solid #ddd', 
           borderRadius: '4px',
-          padding: '10px'
+          padding: '10px',
+          minHeight: 0
         }}>
         {chatHistory.length === 0 && (
           <div style={{ color: '#666', fontStyle: 'italic' }}>
@@ -378,7 +382,7 @@ export const Chat = () => {
           );
         })}
         
-        {processing && (
+        {processing && !useStreaming && (
           <div className="Form" style={{ opacity: 0.7 }}>
             <div style={{ fontWeight: 'bold', color: '#006600' }}>
               Procurement Assistant:
