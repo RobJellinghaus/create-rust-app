@@ -1,5 +1,10 @@
-use actix_web::{post, HttpResponse, web::{Data, Json}};
+use actix_web::{post, get, HttpResponse, web::{Data, Json, Query}};
+use actix_web_lab::sse::{self, Sse};
 use ollama_rs::{Ollama, generation::completion::request::GenerationRequest};
+use tokio_stream::StreamExt;
+use futures_util::stream::Stream;
+use tracing::debug;
+use std::pin::Pin;
 use crate::models::suppliers::Suppliers;
 use create_rust_app::Database;
 
@@ -33,6 +38,44 @@ impl ChatService {
         let response = self.ollama.generate(request).await?;
         
         Ok(response.response)
+    }
+
+    pub async fn chat_with_suppliers_stream(
+        &self,
+        user_message: String,
+        db: &Database,
+    ) -> Result<Pin<Box<dyn Stream<Item = Result<String, Box<dyn std::error::Error + Send>>> + Send>>, Box<dyn std::error::Error>> {
+        // 1. Fetch all current suppliers
+        let suppliers = self.get_all_suppliers(db).await?;
+        
+        // 2. Build context with supplier data
+        let context = self.build_supplier_context(&suppliers);
+        
+        // 3. Create procurement expert prompt
+        let full_prompt = self.build_prompt(&context, &user_message);
+        
+        // 4. Send to Ollama with streaming
+        let request = GenerationRequest::new("mistral-small3.2:24b".to_string(), full_prompt);
+        let stream = self.ollama.generate_stream(request).await?;
+        
+        // 5. Transform the stream to extract text responses
+        let text_stream = stream.map(|result| {
+            match result {
+                Ok(responses) => {
+                    let text = responses.iter()
+                        .map(|resp| resp.response.clone())
+                        .collect::<Vec<String>>()
+                        .join("");
+
+                    debug!("streaming text response: {text}");
+
+                    Ok(text)
+                },
+                Err(e) => Err(Box::new(e) as Box<dyn std::error::Error + Send>)
+            }
+        });
+        
+        Ok(Box::pin(text_stream))
     }
 
     async fn get_all_suppliers(&self, db: &Database) -> Result<Vec<Suppliers>, Box<dyn std::error::Error>> {
@@ -99,6 +142,12 @@ pub struct ChatRequest {
     pub message: String,
 }
 
+#[tsync::tsync] 
+#[derive(serde::Deserialize)]
+pub struct ChatStreamRequest {
+    pub message: String,
+}
+
 #[tsync::tsync]
 #[derive(serde::Serialize)]
 pub struct ChatResponse {
@@ -123,6 +172,60 @@ async fn chat(
     }
 }
 
+#[get("/stream")]
+async fn chat_stream(
+    db: Data<Database>,
+    Query(request): Query<ChatStreamRequest>,
+) -> Sse<impl Stream<Item = Result<sse::Event, actix_web::Error>>> {
+    let chat_service = ChatService::new();
+    
+    let result_stream = match chat_service.chat_with_suppliers_stream(request.message, &db).await {
+        Ok(stream) => {
+            use futures_util::stream::StreamExt as FuturesStreamExt;
+            
+            // Convert to proper SSE events
+            let mapped_stream = FuturesStreamExt::map(stream, |result| {
+                match result {
+                    Ok(text) => {
+                        if text.is_empty() {
+                            // Skip empty chunks
+                            Ok(sse::Event::Data(sse::Data::new("")))
+                        } else {
+                            // Send text as SSE data event
+                            let json_text = serde_json::to_string(&text).unwrap_or_else(|_| "\"\"".to_string());
+                            Ok(sse::Event::Data(sse::Data::new(json_text)))
+                        }
+                    },
+                    Err(e) => {
+                        eprintln!("Stream error: {}", e);
+                        let error_msg = serde_json::to_string(&format!("Error: {}", e)).unwrap_or_else(|_| "\"Error occurred\"".to_string());
+                        Ok(sse::Event::Data(sse::Data::new(error_msg).event("error")))
+                    }
+                }
+            });
+            
+            let sse_stream = FuturesStreamExt::chain(mapped_stream, futures_util::stream::once(async {
+                // Send completion event
+                Ok(sse::Event::Data(sse::Data::new("").event("end")))
+            }));
+            
+            Box::pin(sse_stream) as Pin<Box<dyn Stream<Item = Result<sse::Event, actix_web::Error>> + Send>>
+        },
+        Err(e) => {
+            eprintln!("Chat stream error: {}", e);
+            let error_stream = futures_util::stream::once(async move {
+                let error_msg = "Sorry, I'm having trouble processing your request right now.";
+                Ok(sse::Event::Data(sse::Data::new(error_msg).event("error")))
+            });
+            Box::pin(error_stream) as Pin<Box<dyn Stream<Item = Result<sse::Event, actix_web::Error>> + Send>>
+        }
+    };
+    
+    Sse::from_stream(result_stream)
+}
+
 pub fn endpoints(scope: actix_web::Scope) -> actix_web::Scope {
-    scope.service(chat)
+    scope
+        .service(chat)
+        .service(chat_stream)
 }

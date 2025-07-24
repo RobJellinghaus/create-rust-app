@@ -142,6 +142,10 @@ interface ChatRequest {
   message: string;
 }
 
+interface ChatStreamRequest {
+  message: string;
+}
+
 interface ChatResponse {
   response: string;
 }
