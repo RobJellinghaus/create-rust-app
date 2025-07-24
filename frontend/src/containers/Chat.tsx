@@ -93,6 +93,13 @@ export const Chat = () => {
   const [processing, setProcessing] = useState<boolean>(false)
   const [useStreaming, setUseStreaming] = useState<boolean>(true)
   const eventSourceRef = useRef<EventSource | null>(null)
+  const chatContainerRef = useRef<HTMLDivElement | null>(null)
+
+  const scrollToBottom = () => {
+    if (chatContainerRef.current) {
+      chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight
+    }
+  }
 
   const sendMessageStream = (userMessage: string) => {
     if (!userMessage.trim()) return
@@ -139,6 +146,9 @@ export const Chat = () => {
           console.log('Updated message response length:', updatedMessage?.response.length);
           return updated;
         });
+        
+        // Scroll to bottom after updating state
+        setTimeout(scrollToBottom, 0);
       },
       () => {
         console.log('Stream completed for message ID:', chatMessage.id);
@@ -153,6 +163,9 @@ export const Chat = () => {
         )
         setProcessing(false)
         eventSourceRef.current = null
+        
+        // Final scroll to bottom
+        setTimeout(scrollToBottom, 0);
       },
       (error: string) => {
         // Stream error - fall back to regular API
@@ -186,6 +199,7 @@ export const Chat = () => {
         }
         setChatHistory(prev => [...prev, chatMessage])
         setMessage('')
+        setTimeout(scrollToBottom, 0);
       }
     } catch (error) {
       console.error('Chat error:', error)
@@ -200,6 +214,7 @@ export const Chat = () => {
               : msg
           )
         )
+        setTimeout(scrollToBottom, 0);
       } else {
         const errorMessage: ChatMessage = {
           id: Date.now().toString(),
@@ -209,6 +224,7 @@ export const Chat = () => {
         }
         setChatHistory(prev => [...prev, errorMessage])
         setMessage('')
+        setTimeout(scrollToBottom, 0);
       }
     }
     
@@ -289,14 +305,16 @@ export const Chat = () => {
         </div>
       </div>
       
-      <div style={{ 
-        flex: 1, 
-        overflowY: 'auto', 
-        marginBottom: '20px', 
-        border: '1px solid #ddd', 
-        borderRadius: '4px',
-        padding: '10px'
-      }}>
+      <div 
+        ref={chatContainerRef}
+        style={{ 
+          flex: 1, 
+          overflowY: 'auto', 
+          marginBottom: '20px', 
+          border: '1px solid #ddd', 
+          borderRadius: '4px',
+          padding: '10px'
+        }}>
         {chatHistory.length === 0 && (
           <div style={{ color: '#666', fontStyle: 'italic' }}>
             Welcome! I'm your procurement assistant. I can help you find the best suppliers based on your needs. 
