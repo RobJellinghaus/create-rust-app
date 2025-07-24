@@ -1,81 +1,146 @@
 import React, { useState, useRef, useEffect } from 'react'
 
 const ChatAPI = {
-  send: async (message: string): Promise<ChatResponse> =>
+  send: async (message: string, history?: ChatMessage[]): Promise<ChatResponse> =>
     await (await fetch('/api/chat', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({ message }),
+      body: JSON.stringify({ message, history }),
     })).json(),
     
   sendStream: (
     message: string, 
+    history: ChatMessage[] | undefined,
     onChunk: (chunk: string) => void,
     onComplete: () => void,
     onError: (error: string) => void
   ): EventSource => {
-    const encodedMessage = encodeURIComponent(message);
-    const url = `/api/chat/stream?message=${encodedMessage}`;
-    console.log('Creating EventSource for URL:', url);
+    // For streaming with POST, we need to create a temporary endpoint or use fetch with stream response
+    // Since EventSource only supports GET, we'll use fetch with ReadableStream instead
+    console.log('Starting stream request with message:', message, 'and history length:', history?.length || 0);
     
-    const eventSource = new EventSource(url);
+    const abortController = new AbortController();
     
-    eventSource.onopen = (event) => {
-      console.log('EventSource connection opened:', event);
-      console.log('EventSource readyState:', eventSource.readyState);
+    // Create a mock EventSource-like object
+    const mockEventSource = {
+      readyState: 1, // OPEN
+      close: () => abortController.abort(),
+      onopen: null as ((event: Event) => void) | null,
+      onmessage: null as ((event: MessageEvent) => void) | null,
+      onerror: null as ((event: Event) => void) | null,
+      addEventListener: (type: string, listener: (event: any) => void) => {
+        if (type === 'error') mockEventSource.onerror = listener;
+        if (type === 'end') mockEventSource.onend = listener;
+      },
+      onend: null as ((event: Event) => void) | null
     };
     
-    eventSource.onmessage = (event) => {
-      console.log('Raw SSE event received:', event);
-      console.log('Event data:', event.data);
-      console.log('Event type:', event.type);
+    // Start the streaming request
+    fetch('/api/chat/stream', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'text/event-stream',
+        'Cache-Control': 'no-cache'
+      },
+      body: JSON.stringify({ message, history }),
+      signal: abortController.signal
+    }).then(async (response) => {
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+      
+      if (!response.body) {
+        throw new Error('Response body is null');
+      }
+      
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = '';
       
       try {
-        const chunk = JSON.parse(event.data);
-        console.log('Parsed chunk:', chunk);
-        if (chunk) {
-          console.log('Calling onChunk with:', chunk);
-          onChunk(chunk);
-        } else {
-          console.log('Empty chunk received, skipping');
+        while (true) {
+          const { done, value } = await reader.read();
+          
+          if (done) break;
+          
+          buffer += decoder.decode(value, { stream: true });
+          
+          // Process complete SSE events
+          let eventEnd;
+          while ((eventEnd = buffer.indexOf('\n\n')) !== -1) {
+            const eventData = buffer.slice(0, eventEnd);
+            buffer = buffer.slice(eventEnd + 2);
+            
+            // Parse SSE event
+            const lines = eventData.split('\n');
+            let data = '';
+            let eventType = 'message';
+            
+            for (const line of lines) {
+              if (line.startsWith('data: ')) {
+                data = line.slice(6);
+              } else if (line.startsWith('event: ')) {
+                eventType = line.slice(7);
+              }
+            }
+            
+            if (data) {
+              console.log('Received SSE event:', eventType, 'Data:', data);
+              
+              if (eventType === 'error') {
+                try {
+                  const errorData = JSON.parse(data);
+                  onError(errorData || 'Stream error occurred');
+                } catch (e) {
+                  onError('Stream error occurred');
+                }
+                return;
+              } else if (eventType === 'end' || eventType === 'done') {
+                onComplete();
+                return;
+              } else {
+                // Regular data event
+                try {
+                  const chunk = JSON.parse(data);
+                  if (chunk) {
+                    onChunk(chunk);
+                  }
+                } catch (e) {
+                  console.error('Failed to parse chunk:', e, 'Raw data:', data);
+                  onError('Failed to parse response chunk');
+                  return;
+                }
+              }
+            }
+          }
         }
-      } catch (e) {
-        console.error('Failed to parse chunk:', e, 'Raw data:', event.data);
-        onError('Failed to parse response chunk');
+        
+        // End of stream
+        onComplete();
+      } catch (error) {
+        if (error.name !== 'AbortError') {
+          console.error('Stream reading error:', error);
+          onError('Stream reading error occurred');
+        }
       }
-    };
-    
-    eventSource.addEventListener('error', (event: any) => {
-      console.log('SSE error event received:', event);
-      console.log('Error event data:', event.data);
-      try {
-        const errorData = JSON.parse(event.data);
-        console.error('Stream error:', errorData);
-        eventSource.close();
-        onError(errorData || 'Stream error occurred');
-      } catch (e) {
-        console.error('Failed to parse error:', e);
-        eventSource.close();
-        onError('Stream error occurred');
+    }).catch((error) => {
+      if (error.name !== 'AbortError') {
+        console.error('Fetch error:', error);
+        onError('Connection error occurred');
       }
     });
     
-    eventSource.addEventListener('end', (event) => {
-      console.log('SSE end event received:', event);
-      eventSource.close();
-      onComplete();
-    });
+    // Simulate EventSource open event
+    setTimeout(() => {
+      if (mockEventSource.onopen) {
+        mockEventSource.onopen(new Event('open'));
+      }
+    }, 0);
     
-    eventSource.onerror = (event) => {
-      console.error('EventSource connection error:', event);
-      console.log('EventSource readyState:', eventSource.readyState);
-      eventSource.close();
-      onError('Connection error occurred');
-    };
-    
-    return eventSource;
+    return mockEventSource as EventSource;
   }
 }
 
@@ -94,6 +159,13 @@ export const Chat = () => {
   const [useStreaming, setUseStreaming] = useState<boolean>(true)
   const eventSourceRef = useRef<EventSource | null>(null)
   const chatContainerRef = useRef<HTMLDivElement | null>(null)
+
+  const convertToApiHistory = (history: ChatMessage[]): ChatMessage[] => {
+    return history.flatMap(msg => [
+      { role: 'user', content: msg.message },
+      { role: 'assistant', content: msg.response }
+    ]);
+  }
 
   const scrollToBottom = () => {
     if (chatContainerRef.current) {
@@ -127,8 +199,10 @@ export const Chat = () => {
     setTimeout(scrollToBottom, 0);
 
     // Start streaming
+    const apiHistory = convertToApiHistory(chatHistory);
     eventSourceRef.current = ChatAPI.sendStream(
       userMessage,
+      apiHistory,
       (chunk: string) => {
         console.log('onChunk called with:', chunk);
         console.log('Updating message ID:', chatMessage.id);
@@ -181,7 +255,8 @@ export const Chat = () => {
 
   const sendMessageFallback = async (userMessage: string, existingMessageId?: string) => {
     try {
-      const response = await ChatAPI.send(userMessage)
+      const apiHistory = convertToApiHistory(chatHistory);
+      const response = await ChatAPI.send(userMessage, apiHistory)
       
       if (existingMessageId) {
         // Update existing message

@@ -138,12 +138,19 @@ interface PaginationResult<T> {
   num_pages: number;
 }
 
+interface ChatMessage {
+  role: string;
+  content: string;
+}
+
 interface ChatRequest {
   message: string;
+  history?: Array<ChatMessage>;
 }
 
 interface ChatStreamRequest {
   message: string;
+  history?: Array<ChatMessage>;
 }
 
 interface ChatResponse {
