@@ -138,6 +138,14 @@ interface PaginationResult<T> {
   num_pages: number;
 }
 
+interface ChatRequest {
+  message: string;
+}
+
+interface ChatResponse {
+  response: string;
+}
+
 interface FileInfo {
   id: number;
   key: string;

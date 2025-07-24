@@ -15,6 +15,7 @@ import { Home } from './containers/Home'
 import { Todos } from './containers/Todo'
 import { TodoGraphQLRelay } from './containers/TodoGraphQLRelay'
 import { SupplierList } from './containers/SupplierList'
+import { Chat } from './containers/Chat'
 import { Files } from './containers/Files'
 import { Route, useNavigate, Routes, useLocation } from 'react-router-dom'
 
@@ -38,6 +39,7 @@ const App = () => {
             <a className="NavButton" onClick={() => navigate('/todos')}>Todos (REST)</a>
             <a className="NavButton" onClick={() => navigate('/todos-relay')}>Todos (Relay)</a>
             <a className="NavButton" onClick={() => navigate('/suppliers')}>Suppliers</a>
+            <a className="NavButton" onClick={() => navigate('/chat')}>Chat</a>
           <a className="NavButton" onClick={() => navigate('/files')}>Files</a>
             {/* CRA: left-aligned nav buttons */}
             <a className="NavButton" onClick={() => navigate('/account')}>Account</a>
@@ -78,6 +80,7 @@ const App = () => {
                 <SupplierList />
               </Suspense>
             } />
+            <Route path="/chat" element={<Chat />} />
             {/* CRA: routes */}
               <Route path="/files" element={<Files />} />
             <Route path="/login" element={<LoginPage />} />
