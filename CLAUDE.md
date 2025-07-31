@@ -38,12 +38,15 @@ When making changes to GraphQL attributes or other schema details:
 - If you run the tests and your changes appear to be reverted, it is likely due to the `dsync` crate.
 - If this occurs, please investigate the use of the `dsync` crate in the build process of this
   application, and please include the `dsync` directory in your context to analyze its behavior.
+- **Always check the `dsync` directory and understand its schemas before making any GraphQL or model changes** to avoid conflicts with auto-generated code.
 
 ## Current project goal
 
-We are implementing a comprehensive supplier management system as part of the procuretoy application.
-This includes both backend and frontend components following the established patterns from the existing
-todo system, with full GraphQL support for both Apollo and Relay clients.
+We have implemented a comprehensive supplier management system as part of the procuretoy application,
+including both backend and frontend components following the established patterns from the existing
+todo system, with full GraphQL support for both Apollo and Relay clients. The system includes a
+fully functional Ollama-powered chatbot that provides intelligent supplier recommendations based on
+location and procurement context.
 
 ## Playwright Configuration
 
@@ -82,8 +85,10 @@ Whenever writing Rust code:
 
 ## Whenever editing code
 
-Whenever you have edited code, always run all tests to ensure your changes build correctly and
-execute correctly.
+Whenever you have edited code, always run tests to ensure your changes build correctly and
+execute correctly. Running some Playwright tests after any changes is advisable, but running 
+all Playwright tests is not required for every intermediate step. Run all tests at the 
+completion of any feature.
 
 Also, whenever editing code, ensure that the new code is covered by current or newly added tests.
 
@@ -304,9 +309,14 @@ Ollama Server (localhost:11434)
 Fresh Supplier Data (PostgreSQL)
 ```
 
-## Phases 1 through 4: implementation complete
+## Implementation Status: Complete
 
-The above has been implemented.
+The Rust-native Ollama chatbot with supplier context has been fully implemented, including:
+
+1. **Ollama Integration**: Rust backend integration with ollama-rs crate
+2. **GraphQL Mutations**: Backend mutations for chatbot queries with supplier context
+3. **React Components**: Frontend chat interface components with Relay GraphQL integration
+4. **Supplier Context**: AI responses include fresh supplier data from PostgreSQL database
 
 ## Phase 5: Example Interactions
 
