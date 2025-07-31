@@ -340,4 +340,113 @@ The Rust-native Ollama chatbot with supplier context has been fully implemented,
 
 This approach gives you a fully Rust-native solution that's easy to debug, maintain, and extend while providing intelligent supplier recommendations based on location and procurement best practices.
 
-Next steps involve creating React components with Relay GraphQL integration following the established Todo component patterns.
+## Next Phase: Geographic Distance Calculation Enhancement
+
+### Implementation Plan: Streaming Geocoding with ollama-rs Tools
+
+The next enhancement adds precise geographic distance calculation capabilities to the chatbot using the ollama-rs `tool` feature and free geocoding services.
+
+#### Research Findings (January 2025)
+
+**ollama-rs Version Status:**
+- Latest stable version: **0.3.2** (June 2025)
+- Supports streaming via `generate_stream()`
+- Has tool support via `Coordinator` pattern with `#[ollama_rs::function]` macro
+- **Ollama server v0.8.0+** supports streaming responses with tool calling
+
+**Tool + Streaming Compatibility:**
+- Ollama server supports streaming while tools are active (as of v0.8.0, May 2025)
+- Need to verify if `ollama-rs 0.3.2` supports this combination
+- **Implementation Strategy**: Test streaming + tools compatibility, fallback to hybrid approach if needed
+
+#### Architecture Overview
+```
+User Query → /api/chat/stream → ChatService → {
+    Option A (if streaming + tools work together):
+    Coordinator with Tools → Streaming Response with Tool Calls
+    
+    Option B (if incompatible):
+    1. Coordinator processes tools synchronously
+    2. Enhanced prompt with geocoded data  
+    3. Streaming response with geographic context
+}
+```
+
+#### Phase 1: Upgrade Dependencies
+```toml
+# Update procuretoy/Cargo.toml
+[dependencies]
+geo = "0.28"
+reqwest = { version = "0.12", features = ["json"] }
+urlencoding = "2.1"
+dashmap = "5.5"  # For thread-safe persistent caching
+serde = { version = "1", features = ["derive"] }
+ollama-rs = { version = "0.3.2", features = ["stream", "tool"] }  # Upgrade from 0.2.0
+```
+
+#### Phase 2: Create Persistent Geocoding Cache System
+Create `backend/services/geocoding_cache.rs`:
+- **Persistent cache** using DashMap + file serialization
+- Caches both successful AND failed geocoding results (no expiration)
+- Respects OpenStreetMap Nominatim rate limits (1 req/sec)
+- Cache file: `geocoding_cache.json` in project root
+
+#### Phase 3: Create Geocoding Tools
+Create `backend/services/geocoding_tools.rs`:
+- `#[ollama_rs::function] geocode_location(location)` - converts place names to coordinates using Nominatim API
+- `#[ollama_rs::function] calculate_distance(location1, location2)` - calculates precise distances using geo crate
+- Uses OpenStreetMap Nominatim (free, no API key required)
+- **Fallback to LLM geographic estimates** when geocoding fails
+- **Caches failed attempts** to avoid repeated API calls
+
+#### Phase 4: Test Streaming + Tools Compatibility
+Create `backend/services/chat_geocoding_test.rs`:
+- Test if `Coordinator` with tools supports streaming
+- Verify streaming works during tool execution
+- Implement fallback strategy if incompatible
+
+#### Phase 5: Update Streaming ChatService
+Modify `chat_with_suppliers_stream()` in `backend/services/chat.rs`:
+
+**Option A (if streaming + tools compatible):**
+```rust
+let coordinator = Coordinator::new()
+    .add_tool(geocode_location)
+    .add_tool(calculate_distance);
+let stream = coordinator.generate_stream(request).await?;
+```
+
+**Option B (hybrid approach if incompatible):**
+```rust
+let geocoded_context = coordinator.process_tools(user_message).await?;
+let enhanced_prompt = build_prompt_with_geocoding(context, geocoded_context);  
+let stream = ollama.generate_stream(GenerationRequest::new(model, enhanced_prompt)).await?;
+```
+
+#### Phase 6: Update Module Structure
+Add new modules to `backend/services/mod.rs`:
+```rust
+pub mod geocoding_cache;
+pub mod geocoding_tools;
+```
+
+#### Expected User Interactions
+- **User**: "What are the closest 5 suppliers to Portland, Oregon?"
+- **System**: LLM detects location query → calls geocoding tools → returns precise distances
+- **User**: "How far is Chicago from our Detroit supplier?"  
+- **System**: Calls `calculate_distance()` → returns "Distance: 459.2 km"
+
+#### Key Benefits
+- **Streaming Preserved**: Maintains real-time user experience
+- **Tool Integration**: Automatic geocoding when LLM detects location queries
+- **Free Geocoding**: Uses OpenStreetMap Nominatim (no API key required)  
+- **Persistent Caching**: Thread-safe cache survives server restarts, caches failures
+- **Fallback Strategy**: LLM estimates distances if geocoding fails
+- **Natural Queries**: Users can ask location questions naturally
+
+#### Implementation Priority
+1. **Test compatibility first**: Upgrade ollama-rs and test streaming + tools
+2. **Implement based on findings**: Choose Option A or B based on compatibility results
+3. **Maintain existing functionality**: Preserve current streaming chatbot during enhancement
+
+This enhancement maintains the existing supplier management system while adding precise geographic calculation capabilities, with a fallback strategy to ensure streaming functionality is preserved.
