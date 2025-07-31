@@ -101,27 +101,6 @@ impl ChatService {
         truncated_history
     }
 
-    pub async fn chat_with_suppliers(
-        &self,
-        user_message: String,
-        history: Option<Vec<ChatMessage>>,
-        db: &Database,
-    ) -> Result<String, Box<dyn std::error::Error>> {
-        // 1. Fetch all current suppliers
-        let suppliers = self.get_all_suppliers(db).await?;
-        
-        // 2. Build context with supplier data
-        let context = self.build_supplier_context(&suppliers);
-        
-        // 3. Create procurement expert prompt with history
-        let full_prompt = self.build_prompt_with_history(&context, &user_message, &history.unwrap_or_default());
-        
-        // 4. Send to Ollama
-        let request = GenerationRequest::new(self.model_name.clone(), full_prompt);
-        let response = self.ollama.generate(request).await?;
-        
-        Ok(response.response)
-    }
 
     pub async fn chat_with_suppliers_stream(
         &self,
@@ -268,26 +247,6 @@ pub struct ChatResponse {
     pub response: String,
 }
 
-#[post("")]
-async fn chat(
-    db: Data<Database>,
-    Json(request): Json<ChatRequest>,
-) -> HttpResponse {
-    let mut chat_service = ChatService::new();
-    if let Err(e) = chat_service.initialize().await {
-        eprintln!("Failed to initialize chat service: {}", e);
-    }
-    
-    match chat_service.chat_with_suppliers(request.message, request.history, &db).await {
-        Ok(response) => HttpResponse::Ok().json(ChatResponse { response }),
-        Err(e) => {
-            eprintln!("Chat error: {}", e);
-            HttpResponse::InternalServerError().json(ChatResponse {
-                response: "Sorry, I'm having trouble processing your request right now. Please try again later.".to_string()
-            })
-        }
-    }
-}
 
 #[post("/stream")]
 async fn chat_stream(
@@ -346,6 +305,5 @@ async fn chat_stream(
 
 pub fn endpoints(scope: actix_web::Scope) -> actix_web::Scope {
     scope
-        .service(chat)
         .service(chat_stream)
 }
