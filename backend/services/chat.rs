@@ -1,12 +1,14 @@
 use actix_web::{post, get, HttpResponse, web::{Data, Json, Query}};
 use actix_web_lab::sse::{self, Sse};
-use ollama_rs::{Ollama, generation::completion::request::GenerationRequest};
+use ollama_rs::{Ollama, generation::completion::request::GenerationRequest, Coordinator, CoordinatorStreamEvent, generation::tools::Tool, history::ChatHistory, generation::chat::ChatMessage};
 use tokio_stream::StreamExt;
 use futures_util::stream::Stream;
 use tracing::debug;
 use std::pin::Pin;
 use crate::models::suppliers::Suppliers;
 use create_rust_app::Database;
+use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
 
 pub struct ChatService {
     ollama: Ollama,
@@ -18,7 +20,7 @@ impl ChatService {
     pub fn new() -> Self {
         Self {
             ollama: Ollama::new("http://localhost".to_string(), 11434),
-            model_name: "mistral-small3.2:24b".to_string(),
+            model_name: "mistral-nemo".to_string(),
             context_window_size: None,
         }
     }
@@ -73,7 +75,7 @@ impl ChatService {
         (text.len() + 3) / 4
     }
 
-    fn truncate_history_to_fit_context(&self, history: &[ChatMessage], system_prompt: &str, user_message: &str) -> Vec<ChatMessage> {
+    fn truncate_history_to_fit_context(&self, history: &[ChatMessageRequest], system_prompt: &str, user_message: &str) -> Vec<ChatMessageRequest> {
         let context_limit = self.context_window_size.unwrap_or(32768);
         let system_tokens = self.estimate_token_count(system_prompt);
         let user_tokens = self.estimate_token_count(user_message);
@@ -102,10 +104,121 @@ impl ChatService {
     }
 
 
+    pub async fn chat_with_suppliers_stream_with_tools(
+        &self,
+        user_message: String,
+        history: Option<Vec<ChatMessageRequest>>,
+        db: &Database,
+    ) -> Result<Pin<Box<dyn Stream<Item = Result<String, Box<dyn std::error::Error + Send>>> + Send>>, Box<dyn std::error::Error>> {
+        use async_stream::stream;
+        
+        // 1. Fetch all current suppliers
+        let suppliers = self.get_all_suppliers(db).await?;
+        
+        // 2. Build enhanced context with full supplier addresses
+        let context = self.build_enhanced_supplier_context(&suppliers);
+        
+        // 3. Create enhanced system message
+        let system_message = ChatMessage::system(format!(
+            r#"You are a procurement expert AI assistant with access to geocoding and distance calculation tools. 
+You help users make informed supplier decisions based on location, logistics, cost optimization, and supply chain management.
+
+CURRENT SUPPLIER DATABASE:
+{}
+
+CAPABILITIES:
+- Use geocode_location(location) to get coordinates for any address or city
+- Use calculate_distance(lat1, lng1, lat2, lng2) to get precise distances
+- Analyze geographic proximity for shipping costs and delivery times
+- Provide practical procurement recommendations
+
+INSTRUCTIONS:
+- When users ask about supplier locations or distances, use your tools to provide precise calculations
+- Consider geographical proximity as a key factor in supplier selection  
+- Help users choose the best suppliers based on their location-based needs
+- Be concise but thorough in your recommendations
+- If asked about suppliers not in the database, inform the user they're not currently available"#,
+            context
+        ));
+        
+        // 4. Build conversation with history
+        let mut messages = vec![system_message];
+        if let Some(hist) = history {
+            // Convert ChatMessageRequest to ChatMessage
+            for msg in hist {
+                let chat_msg = match msg.role.as_str() {
+                    "user" => ChatMessage::user(msg.content),
+                    "assistant" => ChatMessage::assistant(msg.content),
+                    _ => ChatMessage::user(msg.content), // Default to user
+                };
+                messages.push(chat_msg);
+            }
+        }
+        messages.push(ChatMessage::user(user_message));
+        
+        // 5. Create owned stream that contains the coordinator  
+        let owned_stream = stream! {
+            let mut coordinator = match setup_coordinator_with_geocoding().await {
+                Ok(coord) => coord,
+                Err(e) => {
+                    let error_msg = format!("Failed to setup coordinator: {}", e);
+                    yield Err(Box::new(std::io::Error::new(std::io::ErrorKind::Other, error_msg)) as Box<dyn std::error::Error + Send>);
+                    return;
+                }
+            };
+            
+            let coordinator_stream = match coordinator.chat_stream(messages).await {
+                Ok(stream) => stream,
+                Err(e) => {
+                    let error_msg = format!("Failed to start chat stream: {}", e);
+                    yield Err(Box::new(std::io::Error::new(std::io::ErrorKind::Other, error_msg)) as Box<dyn std::error::Error + Send>);
+                    return;
+                }
+            };
+            
+            let mut coordinator_stream = Box::pin(coordinator_stream);
+            while let Some(event) = coordinator_stream.next().await {
+                let result = match event {
+                    CoordinatorStreamEvent::ContentChunk(content) => {
+                        debug!("Content chunk: {}", content);
+                        Ok(content)
+                    },
+                    CoordinatorStreamEvent::ToolCallStarted { name, args } => {
+                        debug!("Tool call started: {} with args: {:?}", name, args);
+                        match name.as_str() {
+                            "geocode_location" => Ok("🔍 Looking up location coordinates...".to_string()),
+                            "calculate_distance" => Ok("📏 Calculating distance...".to_string()),
+                            _ => Ok(format!("⚙️ Running {}...", name)),
+                        }
+                    },
+                    CoordinatorStreamEvent::ToolCallCompleted { name, result } => {
+                        debug!("Tool call completed: {} -> {}", name, result);
+                        Ok(format!("✅ {} completed", name))
+                    },
+                    CoordinatorStreamEvent::FinalContentChunk(content) => {
+                        debug!("Final content chunk: {}", content);
+                        Ok(content)
+                    },
+                    CoordinatorStreamEvent::Done => {
+                        debug!("Coordinator stream done");
+                        break; // End the stream instead of yielding empty
+                    },
+                    CoordinatorStreamEvent::Error(err) => {
+                        debug!("Coordinator stream error: {}", err);
+                        Err(Box::new(std::io::Error::new(std::io::ErrorKind::Other, err)) as Box<dyn std::error::Error + Send>)
+                    },
+                };
+                yield result;
+            }
+        };
+        
+        Ok(Box::pin(owned_stream))
+    }
+
     pub async fn chat_with_suppliers_stream(
         &self,
         user_message: String,
-        history: Option<Vec<ChatMessage>>,
+        history: Option<Vec<ChatMessageRequest>>,
         db: &Database,
     ) -> Result<Pin<Box<dyn Stream<Item = Result<String, Box<dyn std::error::Error + Send>>> + Send>>, Box<dyn std::error::Error>> {
         // 1. Fetch all current suppliers
@@ -148,6 +261,33 @@ impl ChatService {
         Ok(result.items)
     }
 
+    fn build_enhanced_supplier_context(&self, suppliers: &[Suppliers]) -> String {
+        if suppliers.is_empty() {
+            return "Currently, there are no suppliers in the system.".to_string();
+        }
+
+        let mut context = String::from("Current Supplier Database:\n\n");
+        
+        for (index, supplier) in suppliers.iter().enumerate() {
+            context.push_str(&format!(
+                "{}. {}\n   Full Address: {}, {}, {} {}, {}\n   Contact: {} ({})\n   Phone: {}\n   Website: {}\n\n",
+                index + 1,
+                supplier.name,
+                supplier.address,
+                supplier.city,
+                supplier.state,
+                supplier.zip_code,
+                supplier.country,
+                supplier.contact_name,
+                supplier.contact_email,
+                supplier.contact_phone,
+                supplier.website.as_deref().unwrap_or("Not provided")
+            ));
+        }
+        
+        context
+    }
+
     fn build_supplier_context(&self, suppliers: &[Suppliers]) -> String {
         if suppliers.is_empty() {
             return "Currently, there are no suppliers in the system.".to_string();
@@ -174,7 +314,7 @@ impl ChatService {
         context
     }
 
-    fn build_prompt_with_history(&self, supplier_context: &str, user_message: &str, history: &[ChatMessage]) -> String {
+    fn build_prompt_with_history(&self, supplier_context: &str, user_message: &str, history: &[ChatMessageRequest]) -> String {
         let system_prompt = format!(
             r#"You are a procurement expert AI assistant helping users make informed supplier decisions. 
 Your expertise includes supplier evaluation, location-based logistics, cost optimization, and supply chain risk management.
@@ -222,7 +362,7 @@ INSTRUCTIONS:
 
 #[tsync::tsync]
 #[derive(serde::Serialize, serde::Deserialize, Debug, Clone)]
-pub struct ChatMessage {
+pub struct ChatMessageRequest {
     pub role: String,
     pub content: String,
 }
@@ -231,20 +371,91 @@ pub struct ChatMessage {
 #[derive(serde::Deserialize)]
 pub struct ChatRequest {
     pub message: String,
-    pub history: Option<Vec<ChatMessage>>,
+    pub history: Option<Vec<ChatMessageRequest>>,
 }
 
 #[tsync::tsync] 
 #[derive(serde::Deserialize)]
 pub struct ChatStreamRequest {
     pub message: String,
-    pub history: Option<Vec<ChatMessage>>,
+    pub history: Option<Vec<ChatMessageRequest>>,
 }
 
 #[tsync::tsync]
 #[derive(serde::Serialize)]
 pub struct ChatResponse {
     pub response: String,
+}
+
+#[derive(Deserialize)]
+struct NominatimResult {
+    lat: String,
+    lon: String,
+    display_name: String,
+}
+
+
+/// Get latitude and longitude coordinates for a location
+#[ollama_rs::function]
+async fn geocode_location(location: String) -> Result<String, Box<dyn std::error::Error + Send + Sync>> {
+    let client = reqwest::Client::builder()
+        .user_agent("Procuretoy-Chatbot/1.0")
+        .timeout(std::time::Duration::from_secs(10))
+        .build()?;
+        
+    let encoded_location = urlencoding::encode(&location);
+    let url = format!(
+        "https://nominatim.openstreetmap.org/search?q={}&format=json&limit=1&addressdetails=1",
+        encoded_location
+    );
+    
+    debug!("Geocoding request: {}", url);
+    
+    let response = client.get(&url).send().await?;
+    let results: Vec<NominatimResult> = response.json().await?;
+    
+    match results.first() {
+        Some(result) => {
+            debug!("Geocoding success: {} -> {},{}", location, result.lat, result.lon);
+            Ok(format!("Coordinates for '{}': {},{} ({})", 
+                location, result.lat, result.lon, result.display_name))
+        }
+        None => {
+            debug!("Geocoding failed for: {}", location);
+            Ok(format!("Could not find coordinates for: {}", location))
+        }
+    }
+}
+
+/// Calculate distance between two coordinate points in kilometers and miles
+#[ollama_rs::function]
+async fn calculate_distance(
+    lat1: f64, lng1: f64, lat2: f64, lng2: f64
+) -> Result<String, Box<dyn std::error::Error + Send + Sync>> {
+    const EARTH_RADIUS_KM: f64 = 6371.0;
+    
+    let lat1_rad = lat1.to_radians();
+    let lat2_rad = lat2.to_radians();
+    let delta_lat = (lat2 - lat1).to_radians();
+    let delta_lng = (lng2 - lng1).to_radians();
+    
+    let a = (delta_lat / 2.0).sin().powi(2) +
+            lat1_rad.cos() * lat2_rad.cos() * (delta_lng / 2.0).sin().powi(2);
+    let c = 2.0 * a.sqrt().atan2((1.0 - a).sqrt());
+    let distance_km = EARTH_RADIUS_KM * c;
+    let distance_miles = distance_km * 0.621371;
+    
+    debug!("Distance calculated: {:.1} km ({:.1} miles)", distance_km, distance_miles);
+    Ok(format!("Distance: {:.1} km ({:.1} miles)", distance_km, distance_miles))
+}
+
+pub async fn setup_coordinator_with_geocoding() -> Result<Coordinator<Vec<ChatMessage>>, Box<dyn std::error::Error + Send + Sync>> {
+    let ollama = Ollama::new("http://localhost".to_string(), 11434);
+    let coordinator = Coordinator::new(ollama, "mistral-nemo".to_string(), Vec::new())
+        .add_tool(geocode_location)
+        .add_tool(calculate_distance)
+        .debug(true);
+    Ok(coordinator)
 }
 
 
@@ -258,7 +469,7 @@ async fn chat_stream(
         eprintln!("Failed to initialize chat service: {}", e);
     }
     
-    let result_stream = match chat_service.chat_with_suppliers_stream(request.message, request.history, &db).await {
+    let result_stream = match chat_service.chat_with_suppliers_stream_with_tools(request.message, request.history, &db).await {
         Ok(stream) => {
             use futures_util::stream::StreamExt as FuturesStreamExt;
             
