@@ -10,6 +10,8 @@ use create_rust_app::Database;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
+const MODEL: &str = "mistral-nemo";
+
 pub struct ChatService {
     ollama: Ollama,
     model_name: String,
@@ -20,7 +22,7 @@ impl ChatService {
     pub fn new() -> Self {
         Self {
             ollama: Ollama::new("http://localhost".to_string(), 11434),
-            model_name: "mistral-nemo".to_string(),
+            model_name: MODEL.to_string(),
             context_window_size: None,
         }
     }
@@ -141,8 +143,8 @@ INSTRUCTIONS:
             context
         ));
         
-        // 4. Build conversation with history
-        let mut messages = vec![system_message];
+        // 4. Build initial conversation with history
+        let mut initial_messages = vec![system_message];
         if let Some(hist) = history {
             // Convert ChatMessageRequest to ChatMessage
             for msg in hist {
@@ -151,12 +153,12 @@ INSTRUCTIONS:
                     "assistant" => ChatMessage::assistant(msg.content),
                     _ => ChatMessage::user(msg.content), // Default to user
                 };
-                messages.push(chat_msg);
+                initial_messages.push(chat_msg);
             }
         }
-        messages.push(ChatMessage::user(user_message));
+        initial_messages.push(ChatMessage::user(user_message));
         
-        // 5. Create owned stream that contains the coordinator  
+        // 5. Create multi-stream wrapper that handles tool-calling rounds automatically
         let owned_stream = stream! {
             let mut coordinator = match setup_coordinator_with_geocoding().await {
                 Ok(coord) => coord,
@@ -167,91 +169,86 @@ INSTRUCTIONS:
                 }
             };
             
-            let coordinator_stream = match coordinator.chat_stream(messages).await {
-                Ok(stream) => stream,
-                Err(e) => {
-                    let error_msg = format!("Failed to start chat stream: {}", e);
-                    yield Err(Box::new(std::io::Error::new(std::io::ErrorKind::Other, error_msg)) as Box<dyn std::error::Error + Send>);
-                    return;
-                }
-            };
+            let mut messages = initial_messages.clone();
+            let mut round = 1;
             
-            let mut coordinator_stream = Box::pin(coordinator_stream);
-            while let Some(event) = coordinator_stream.next().await {
-                let result = match event {
-                    CoordinatorStreamEvent::ContentChunk(content) => {
-                        debug!("Content chunk: {}", content);
-                        Ok(content)
-                    },
-                    CoordinatorStreamEvent::ToolCallStarted { name, args } => {
-                        debug!("Tool call started: {} with args: {:?}", name, args);
-                        match name.as_str() {
-                            "geocode_location" => Ok("🔍 Looking up location coordinates...".to_string()),
-                            "calculate_distance" => Ok("📏 Calculating distance...".to_string()),
-                            _ => Ok(format!("⚙️ Running {}...", name)),
-                        }
-                    },
-                    CoordinatorStreamEvent::ToolCallCompleted { name, result } => {
-                        debug!("Tool call completed: {} -> {}", name, result);
-                        Ok(format!("✅ {} completed", name))
-                    },
-                    CoordinatorStreamEvent::FinalContentChunk(content) => {
-                        debug!("Final content chunk: {}", content);
-                        Ok(content)
-                    },
-                    CoordinatorStreamEvent::Done => {
-                        debug!("Coordinator stream done");
-                        break; // End the stream instead of yielding empty
-                    },
-                    CoordinatorStreamEvent::Error(err) => {
-                        debug!("Coordinator stream error: {}", err);
-                        Err(Box::new(std::io::Error::new(std::io::ErrorKind::Other, err)) as Box<dyn std::error::Error + Send>)
-                    },
+            loop {
+                debug!("Starting streaming round {}", round);
+                
+                let coordinator_stream = match coordinator.chat_stream(messages.clone()).await {
+                    Ok(stream) => stream,
+                    Err(e) => {
+                        let error_msg = format!("Failed to start chat stream (round {}): {}", round, e);
+                        yield Err(Box::new(std::io::Error::new(std::io::ErrorKind::Other, error_msg)) as Box<dyn std::error::Error + Send>);
+                        return;
+                    }
                 };
-                yield result;
+                
+                let mut coordinator_stream = Box::pin(coordinator_stream);
+                let mut stream_completed = false;
+                let mut tool_completed = false;
+                
+                while let Some(event) = coordinator_stream.next().await {
+                    let result = match event {
+                        CoordinatorStreamEvent::ContentChunk(content) => {
+                            debug!("Round {} - Content chunk: {}", round, content);
+                            Ok(content)
+                        },
+                        CoordinatorStreamEvent::ToolCallStarted { name, args } => {
+                            debug!("Round {} - Tool call started: {} with args: {:?}", round, name, args);
+                            let args_display = if args.is_object() && !args.as_object().unwrap().is_empty() {
+                                format!(" with args: {}", args)
+                            } else {
+                                String::new()
+                            };
+                            match name.as_str() {
+                                "geocode_location" => Ok(format!("\n🔍 Looking up location coordinates{}\n", args_display)),
+                                "calculate_distance" => Ok(format!("\n📏 Calculating distance{}\n", args_display)),
+                                _ => Ok(format!("\n⚙️ Running {}{}\n", name, args_display)),
+                            }
+                        },
+                        CoordinatorStreamEvent::ToolCallCompleted { name, result } => {
+                            debug!("Round {} - Tool call completed: {} -> {}", round, name, result);
+                            tool_completed = true; // Mark that tools were used
+                            Ok(format!("✅ {} completed: {}\n", name, result))
+                        },
+                        CoordinatorStreamEvent::FinalContentChunk(content) => {
+                            debug!("Round {} - Final content chunk: {}", round, content);
+                            Ok(content)
+                        },
+                        CoordinatorStreamEvent::Done => {
+                            debug!("Round {} - Coordinator stream done", round);
+                            stream_completed = true;
+                            break;
+                        },
+                        CoordinatorStreamEvent::Error(err) => {
+                            debug!("Round {} - Coordinator stream error: {}", round, err);
+                            Err(Box::new(std::io::Error::new(std::io::ErrorKind::Other, err)) as Box<dyn std::error::Error + Send>)
+                        },
+                    };
+                    yield result;
+                }
+                
+                // Drop the stream to release the mutable borrow before accessing history
+                drop(coordinator_stream);
+                
+                if stream_completed && tool_completed {
+                    // Tools were used, continue with another stream that includes tool results
+                    debug!("Round {} complete with tools used, starting round {}", round, round + 1);
+                    let history = coordinator.history().clone();
+                    messages = initial_messages.clone();
+                    messages.extend(history);
+                    round += 1;
+                    continue; // Loop back for another streaming request
+                } else {
+                    // No tools used or stream failed, we're done
+                    debug!("Round {} complete. Tools used: {}, conversation complete after {} rounds", round, tool_completed, round);
+                    break;
+                }
             }
         };
         
         Ok(Box::pin(owned_stream))
-    }
-
-    pub async fn chat_with_suppliers_stream(
-        &self,
-        user_message: String,
-        history: Option<Vec<ChatMessageRequest>>,
-        db: &Database,
-    ) -> Result<Pin<Box<dyn Stream<Item = Result<String, Box<dyn std::error::Error + Send>>> + Send>>, Box<dyn std::error::Error>> {
-        // 1. Fetch all current suppliers
-        let suppliers = self.get_all_suppliers(db).await?;
-        
-        // 2. Build context with supplier data
-        let context = self.build_supplier_context(&suppliers);
-        
-        // 3. Create procurement expert prompt with history
-        let full_prompt = self.build_prompt_with_history(&context, &user_message, &history.unwrap_or_default());
-        
-        // 4. Send to Ollama with streaming
-        let request = GenerationRequest::new(self.model_name.clone(), full_prompt);
-        let stream = self.ollama.generate_stream(request).await?;
-        
-        // 5. Transform the stream to extract text responses
-        let text_stream = stream.map(|result| {
-            match result {
-                Ok(responses) => {
-                    let text = responses.iter()
-                        .map(|resp| resp.response.clone())
-                        .collect::<Vec<String>>()
-                        .join("");
-
-                    debug!("streaming text response: {text}");
-
-                    Ok(text)
-                },
-                Err(e) => Err(Box::new(e) as Box<dyn std::error::Error + Send>)
-            }
-        });
-        
-        Ok(Box::pin(text_stream))
     }
 
     async fn get_all_suppliers(&self, db: &Database) -> Result<Vec<Suppliers>, Box<dyn std::error::Error>> {
@@ -288,76 +285,6 @@ INSTRUCTIONS:
         context
     }
 
-    fn build_supplier_context(&self, suppliers: &[Suppliers]) -> String {
-        if suppliers.is_empty() {
-            return "Currently, there are no suppliers in the system.".to_string();
-        }
-
-        let mut context = String::from("Current Supplier Database:\n\n");
-        
-        for (index, supplier) in suppliers.iter().enumerate() {
-            context.push_str(&format!(
-                "{}. {}\n   Location: {}, {}, {}, {}\n   Contact: {} ({})\n   Phone: {}\n   Website: {}\n\n",
-                index + 1,
-                supplier.name,
-                supplier.city,
-                supplier.state,
-                supplier.zip_code,
-                supplier.country,
-                supplier.contact_name,
-                supplier.contact_email,
-                supplier.contact_phone,
-                supplier.website.as_deref().unwrap_or("Not provided")
-            ));
-        }
-        
-        context
-    }
-
-    fn build_prompt_with_history(&self, supplier_context: &str, user_message: &str, history: &[ChatMessageRequest]) -> String {
-        let system_prompt = format!(
-            r#"You are a procurement expert AI assistant helping users make informed supplier decisions. 
-Your expertise includes supplier evaluation, location-based logistics, cost optimization, and supply chain risk management.
-
-CURRENT SUPPLIER DATABASE:
-{}
-
-INSTRUCTIONS:
-- Help users choose the best suppliers based on their needs
-- Consider geographical proximity for shipping costs and delivery times  
-- Analyze supplier locations for logistics advantages
-- Provide practical procurement advice
-- If asked about suppliers not in the database, inform the user they're not currently available
-- Be concise but thorough in your recommendations
-- Always consider location as a key factor in supplier selection
-- Maintain context from previous conversation while staying focused on procurement"#,
-            supplier_context
-        );
-        
-        // Truncate history to fit within context window
-        let truncated_history = self.truncate_history_to_fit_context(history, &system_prompt, user_message);
-        
-        let mut full_prompt = system_prompt;
-        
-        // Add conversation history
-        if !truncated_history.is_empty() {
-            full_prompt.push_str("\n\nCONVERSATION HISTORY:\n");
-            for msg in truncated_history {
-                match msg.role.as_str() {
-                    "user" => full_prompt.push_str(&format!("USER: {}\n", msg.content)),
-                    "assistant" => full_prompt.push_str(&format!("ASSISTANT: {}\n", msg.content)),
-                    _ => {}
-                }
-            }
-        }
-        
-        full_prompt.push_str(&format!("\nUSER: {}\n\nASSISTANT:", user_message));
-        full_prompt
-    }
-
-    fn build_prompt(&self, supplier_context: &str, user_message: &str) -> String {
-        self.build_prompt_with_history(supplier_context, user_message, &[])
-    }
 }
 
 #[tsync::tsync]
@@ -451,13 +378,12 @@ async fn calculate_distance(
 
 pub async fn setup_coordinator_with_geocoding() -> Result<Coordinator<Vec<ChatMessage>>, Box<dyn std::error::Error + Send + Sync>> {
     let ollama = Ollama::new("http://localhost".to_string(), 11434);
-    let coordinator = Coordinator::new(ollama, "mistral-nemo".to_string(), Vec::new())
+    let coordinator = Coordinator::new(ollama, MODEL.to_string(), Vec::new())
         .add_tool(geocode_location)
         .add_tool(calculate_distance)
         .debug(true);
     Ok(coordinator)
 }
-
 
 #[post("/stream")]
 async fn chat_stream(
